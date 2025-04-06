@@ -13,6 +13,17 @@
 - ⚙️ Works with static JSON or a Cloudflare‑Workers API
 
 
+
+## Acknowledgements
+
+This package’s underlying PSGC data is provided by the Philippine Statistics Authority (PSA).  
+Original dataset and publication details can be found at:
+
+ - [https://psa.gov.ph/classification/psgc](https://psa.gov.ph/classification/psgc)
+
+Please refer to the PSA’s terms of use for any redistribution of the raw data.
+
+
 ## Installation
 
 Install my-project with npm
