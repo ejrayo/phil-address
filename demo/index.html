@@ -1,0 +1,40 @@
+<!-- demo/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Phil-Address Demo</title>
+  <style>
+    body { font-family: sans-serif; }
+    .dropdown-container { width: 300px; margin: 20px auto; }
+  </style>
+</head>
+<body>
+  <h1 style="text-align:center;">Phil-Address Demo</h1>
+
+  <div id="region-dropdown" class="dropdown-container"></div>
+  <div id="province-dropdown" class="dropdown-container"></div>
+  <div id="city-dropdown" class="dropdown-container"></div>
+  <div id="barangay-dropdown" class="dropdown-container"></div>
+
+  <!-- 1) Include your UMD bundle -->
+  <script src="../dist/phil-address.umd.js"></script>
+  <script>
+    // 2) Grab the init function
+    const { initPSGCDropdowns } = PhilAddress;
+
+    // 3) Call it, passing in your container elements and a final callback
+    initPSGCDropdowns({
+      regionContainer:   document.getElementById('region-dropdown'),
+      provinceContainer: document.getElementById('province-dropdown'),
+      cityContainer:     document.getElementById('city-dropdown'),
+      barangayContainer: document.getElementById('barangay-dropdown'),
+      onFinalSelect:     selected => {
+        // This will fire when the user picks a barangay
+        console.log('You selected:', selected);
+        alert(`You selected: ${selected.name} (${selected.id})`);
+      }
+    });
+  </script>
+</body>
+</html>
