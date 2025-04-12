@@ -1,12 +1,14 @@
 
 # Phil-Address
+![NPM Version](https://img.shields.io/npm/v/@jeijei11%2Fphil-address)
+![License](https://img.shields.io/npm/l/@jeijei11%2Fphil-address)
 
 **Phil-Address** is an npm module that provides functions to fetch Philippine address data—including regions, provinces, cities/municipalities/sub‑municipalities, and barangays—from a public API. It also implements in‑memory caching (with TTL) and offers a helper for constructing a full address string. This allows you complete freedom to create your own user interfaces (dropdowns, autocompletes, etc.) for address selection.
 
 > [!NOTE]
 > **Metro Manila** is included as a pseudo province for all cities and barangays for Region NCR.
 > New Region **Negros Island Region (NIR)** included.
-> Uses the latest **PSGC-4Q-2024-Publication-Datafile**. _Link below_.
+> API data uses the **PSGC-4Q-2024-Publication-Datafile**. _Link below_.
 
 
 ## Features
@@ -160,7 +162,7 @@ import { regions, provinces, cities, barangays, constructAddress } from 'phil-ad
 
 ## Acknowledgements
 
-This package’s underlying PSGC data is provided by the Philippine Statistics Authority (PSA).
+This package’s underlying PSGC data is provided by the Philippine Statistics Authority (PSA) - Publication date: 31 December 2024.
 Original dataset and publication details can be found at:
  - [Philippine Statistics Authority (PSA)](https://psa.gov.ph/classification/psgc)
 

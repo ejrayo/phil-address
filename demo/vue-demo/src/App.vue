@@ -1,6 +1,6 @@
 <template>
   <div id="app">
-    <img alt="Vue logo" src="./assets/logo.png">
+    <img alt="Vue logo" class="logo" src="./assets/logo.png">
     <h1>Vue Demo - Phil-Address</h1>
     
     <div class="dropdown-container">
@@ -132,10 +132,22 @@ export default {
 </script>
 
 <style scoped>
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.logo {
+  height: 20vmin;
+  pointer-events: none;
+}
 /* Ensure the app takes full viewport height with room for the fixed footer */
 #app {
   position: relative;
-  min-height: 100vh;
   padding-bottom: 60px; /* Space reserved for footer */
   text-align: center;
   color: #2c3e50;
@@ -169,17 +181,15 @@ select:disabled {
 
 /* Style for the address output */
 #address-output {
-  width: 300px;
+  width: 400px;
   max-width: 100%;
   margin: 20px auto;
   padding: 15px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
   background-color: #fff;
   font-weight: semi-bold;
   text-align: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
+
 
 /* Fixed footer styling */
 footer {

@@ -1,5 +1,6 @@
 import resolve from '@rollup/plugin-node-resolve';
-import json    from '@rollup/plugin-json';
+import json from '@rollup/plugin-json';
+import replace from '@rollup/plugin-replace';
 
 export default {
   input: 'src/index.js',
@@ -14,5 +15,13 @@ export default {
       format: 'es'
     }
   ],
-  plugins: [json(),resolve()]
+  plugins: [
+    replace({
+      // The feature flag is defined as false in production
+      __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: JSON.stringify(false),
+      preventAssignment: true
+    }),
+    json(),
+    resolve()
+  ]
 };

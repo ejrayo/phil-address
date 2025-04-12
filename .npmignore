@@ -1,0 +1,8 @@
+# Ignore demo and test directories
+demo/
+test/
+docs/
+
+# Ignore build artifacts
+.gitignore
+.npmignore

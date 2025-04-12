@@ -1,0 +1,53 @@
+{
+  "source": {
+      "include": ["src", "README.md", "package.json"],
+      "exclude": ["node_modules", "dist", "demo", "test"]
+  },
+
+  "opts": {
+      "encoding": "utf8",
+      "readme": "./README.md",
+      "destination": "docs/",
+      "recurse": true,
+      "verbose": true,
+      "template": "./node_modules/clean-jsdoc-theme",
+      "theme_opts": {
+          "default_theme": "dark",
+          "shouldRemoveScrollbarStyle": false,
+          "includeFilesListInHomepage": true,
+          "search": true,
+          "homepageTitle": "Phil-Address",
+          "title": "Phil-Address",
+          "exclude_inherited": false,
+          "displayModuleHeader": true,
+          "footer": "<div style=\"text-align: center; padding: 10px 0;\"><a href=\"https://github.com/ejrayo/phil-address\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"color: #007bff; text-decoration: none;\"><img src=\"https://raw.githubusercontent.com/ejrayo/phil-address/github-mark.png\" alt=\"GitHub Logo\" style=\"vertical-align: middle; width: 24px; margin-right: 8px;\"/>V.1.0.0 - phil-address by Ej Rayo</a></div>",
+          "meta": [
+                {
+                    "name": "Author",
+                    "content": "Edmund Rayo Jr"
+                },
+                {
+                    "name": "Description",
+                    "content": "Phil-Address is an npm module that provides functions to fetch Philippine address data—including regions, provinces, cities/municipalities/sub‑municipalities, and barangays—from a public API. It also implements in‑memory caching (with TTL) and offers a helper for constructing a full address string. This allows you complete freedom to create your own user interfaces (dropdowns, autocompletes, etc.) for address selection."
+                }
+          ],
+          "menu": [
+              {
+                  "title": "Github",
+                  "id": "github",
+                  "link": "https://github.com/ejrayo/phil-address"
+              },
+              {
+                  "title": "npm",
+                  "id": "npm",
+                  "link": "https://www.npmjs.com/package/@jeijei11/phil-address"
+              }
+          ],
+          "prefixModuleToSidebarItems_experimental": true
+      }
+  },
+  "markdown": {
+      "hardwrap": false,
+      "idInHeadings": true
+  }
+}

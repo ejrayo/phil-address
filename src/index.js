@@ -1,20 +1,53 @@
+/**
+ * The base URL for the Philippine address API.
+ * @constant {string}
+ */
 const API = 'https://phil-address-api.rayoedmund.workers.dev';
 
-// TTL in milliseconds (example: 1 hour)
+/**
+ * Cache Time-To-Live in milliseconds (default is 1 hour).
+ * @constant {number}
+ */
 const CACHE_TTL = 3600000;
 
 // ------------------
 // Caching Variables with TTL Support
 // ------------------
+
+/**
+ * Cache for regions data.
+ * @type {{data: Array|null, timestamp: number}}
+ */
 let regionsCache = { data: null, timestamp: 0 };
-const provincesCache = {}; // keyed by "provinces-" + regionCode
-const citiesCache = {};    // keyed by "cities-" + provCode
-const barangaysCache = {}; // keyed by "barangays-" + cityCode
+
+/**
+ * Cache for provinces data, keyed by "provinces-" + regionCode.
+ * @type {Object.<string, {data: Array, timestamp: number}>}
+ */
+const provincesCache = {};
+
+/**
+ * Cache for cities data, keyed by "cities-" + provCode.
+ * @type {Object.<string, {data: Array, timestamp: number}>}
+ */
+const citiesCache = {};
+
+/**
+ * Cache for barangays data, keyed by "barangays-" + cityCode.
+ * @type {Object.<string, {data: Array, timestamp: number}>}
+ */
+const barangaysCache = {};
 
 // ------------------
 // API Functions with Error Handling and TTL Caching
 // ------------------
 
+/**
+ * Fetches region data from the API, using in-memory caching with TTL.
+ *
+ * @async
+ * @returns {Promise<Array>} Resolves to an array of region objects.
+ */
 async function loadRegions() {
   if (regionsCache.data && (Date.now() - regionsCache.timestamp < CACHE_TTL)) {
     return regionsCache.data;
@@ -33,6 +66,13 @@ async function loadRegions() {
   }
 }
 
+/**
+ * Fetches province data for a given region code from the API, using in-memory caching with TTL.
+ *
+ * @async
+ * @param {string} regionCode - The region code for which to fetch provinces.
+ * @returns {Promise<Array>} Resolves to an array of province objects.
+ */
 async function loadProvinces(regionCode) {
   // Optional: Validate regionCode if needed:
   if (typeof regionCode !== 'string' || !regionCode) {
@@ -59,6 +99,13 @@ async function loadProvinces(regionCode) {
   }
 }
 
+/**
+ * Fetches cities data for a given province code from the API, using in-memory caching with TTL.
+ *
+ * @async
+ * @param {string} provCode - The province code for which to fetch cities.
+ * @returns {Promise<Array>} Resolves to an array of city objects.
+ */
 async function loadCities(provCode) {
   // Optional: Validate provCode if needed:
   if (typeof provCode !== 'string' || !provCode) {
@@ -85,6 +132,13 @@ async function loadCities(provCode) {
   }
 }
 
+/**
+ * Fetches barangay data for a given city code from the API, using in-memory caching with TTL.
+ *
+ * @async
+ * @param {string} cityCode - The city code for which to fetch barangays.
+ * @returns {Promise<Array>} Resolves to an array of barangay objects.
+ */
 async function loadBarangays(cityCode) {
   // Optional: Validate cityCode if needed:
   if (typeof cityCode !== 'string' || !cityCode) {
@@ -119,7 +173,11 @@ async function loadBarangays(cityCode) {
  * The object should have properties: region, province, city, barangay.
  *
  * @param {Object} address - An object containing address parts.
- * @returns {string} - The full address as a comma-separated string.
+ * @param {string} [address.region] - The region name.
+ * @param {string} [address.province] - The province name.
+ * @param {string} [address.city] - The city name.
+ * @param {string} [address.barangay] - The barangay name.
+ * @returns {string} The full address as a comma-separated string.
  */
 function constructAddress(address) {
   return [address.barangay, address.city, address.province, address.region]
@@ -130,18 +188,42 @@ function constructAddress(address) {
 // ------------------
 // Exports
 // ------------------
+
+/**
+ * Returns a promise resolving to the regions data.
+ *
+ * @returns {Promise<Array>} Regions data.
+ */
 export async function regions() {
   return loadRegions();
 }
 
+/**
+ * Returns a promise resolving to the provinces data for a given region code.
+ *
+ * @param {string} regionCode - The region code.
+ * @returns {Promise<Array>} Provinces data.
+ */
 export async function provinces(regionCode) {
   return loadProvinces(regionCode);
 }
 
+/**
+ * Returns a promise resolving to the cities data for a given province code.
+ *
+ * @param {string} provCode - The province code.
+ * @returns {Promise<Array>} Cities data.
+ */
 export async function cities(provCode) {
   return loadCities(provCode);
 }
 
+/**
+ * Returns a promise resolving to the barangays data for a given city code.
+ *
+ * @param {string} cityCode - The city code.
+ * @returns {Promise<Array>} Barangays data.
+ */
 export async function barangays(cityCode) {
   return loadBarangays(cityCode);
 }

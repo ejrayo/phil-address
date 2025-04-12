@@ -1,7 +1,7 @@
 {
   "name": "phil-address",
   "version": "1.0.0",
-  "description": "Searchable cascading dropdowns for Philippine PSGC: Region → Province → City/Municipality/Sub‑Municipality → Barangay, with Metro Manila grouping built‑in.",
+  "description": "Phil-Address is an npm module that provides functions to fetch Philippine address data—including regions, provinces, cities/municipalities/sub‑municipalities, and barangays—from a public API. It also implements in‑memory caching (with TTL) and offers a helper for constructing a full address string. This allows you complete freedom to create your own user interfaces (dropdowns, autocompletes, etc.) for address selection.",
   "main": "dist/phil-address.umd.js",
   "module": "dist/phil-address.esm.js",
   "type": "module",
@@ -9,7 +9,6 @@
     "philippine address",
     "psgc-4q-2024",
     "dropdown",
-    "searchable",
     "philippines",
     "location",
     "cascading",
@@ -18,14 +17,12 @@
     "address picker",
     "philippine location",
     "philippine psgc",
-    "region selector",
-    "province selector",
-    "city selector",
-    "barangay selector",
-    "geolocation",
+    "region",
+    "province",
+    "city",
+    "barangay",
     "location picker",
-    "address autocomplete",
-    "address ui"
+    "address autocomplete"
   ],
   "author": "Ej Rayo contact@ejrayo.com",
   "license": "MIT",
@@ -39,16 +36,22 @@
   },
   "scripts": {
     "build": "rollup -c",
-    "test": "jest"
+    "test": "jest",
+    "docs": "jsdoc --configure jsdoc.json --verbose"
   },
   "devDependencies": {
     "@babel/core": "^7.26.10",
     "@babel/preset-env": "^7.26.9",
     "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^16.0.1",
+    "@rollup/plugin-replace": "^6.0.2",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
+    "jsdoc": "^4.0.4",
     "node-fetch": "^2.7.0",
     "rollup": "^4.39.0"
+  },
+  "dependencies": {
+    "clean-jsdoc-theme": "^4.3.0"
   }
 }
