@@ -2,38 +2,208 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Phil-Address Demo</title>
   <style>
-    body { font-family: sans-serif; }
-    .dropdown-container { width: 300px; margin: 20px auto; }
+    /* Base styling for the body */
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f4f9;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+    }
+
+    h1 {
+      text-align: center;
+      color: #444;
+      margin-bottom: 20px;
+    }
+
+    /* Container for all dropdowns */
+    .dropdown-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0 10px;
+    }
+
+    /* Styling for each dropdown (select element) */
+    .dropdown {
+      width: 300px;
+      max-width: 100%;
+      margin: 10px 0;
+      padding: 8px 12px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      background-color: #fff;
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      font-size: 16px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      transition: border-color 0.2s ease-in-out;
+    }
+    
+    .dropdown:focus {
+      outline: none;
+      border-color: #007bff;
+    }
+    
+    /* Remove default dropdown arrow in IE */
+    .dropdown::-ms-expand {
+      display: none;
+    }
+    
+    /* Styling for the final address container */
+    #final-address {
+      width: 300px;
+      max-width: 100%;
+      margin: 20px auto;
+      padding: 15px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      background-color: #fff;
+      font-weight: bold;
+      text-align: center;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Mobile responsive adjustments */
+    @media (max-width: 480px) {
+      .dropdown,
+      #final-address {
+        width: 90%;
+      }
+      body {
+        padding: 10px;
+      }
+      h1 {
+        font-size: 1.5em;
+      }
+      .dropdown {
+        font-size: 14px;
+      }
+      #final-address {
+        font-size: 14px;
+        padding: 10px;
+      }
+    }
   </style>
 </head>
+  
+
 <body>
   <h1 style="text-align:center;">Phil-Address Demo</h1>
+  
+  <div class="dropdown-container">
+    <select id="region-select" class="dropdown">
+      <option value="">Select Region</option>
+    </select>
+    <select id="province-select" class="dropdown" disabled>
+      <option value="">Select Province</option>
+    </select>
+    <select id="city-select" class="dropdown" disabled>
+      <option value="">Select City/Mun/SubMun</option>
+    </select>
+    <select id="barangay-select" class="dropdown" disabled>
+      <option value="">Select Barangay</option>
+    </select>
+  </div>
+  
+  <div id="final-address">Final Address: </div>
 
-  <div id="region-dropdown" class="dropdown-container"></div>
-  <div id="province-dropdown" class="dropdown-container"></div>
-  <div id="city-dropdown" class="dropdown-container"></div>
-  <div id="barangay-dropdown" class="dropdown-container"></div>
+  <!-- Use a module script to import your functions -->
+  <script type="module">
+    // Import functions and helper from your module.
+    import { regions, provinces, cities, barangays, constructAddress } from '../src/index.js';
 
-  <!-- 1) Include your UMD bundle -->
-  <script src="../dist/phil-address.umd.js"></script>
-  <script>
-    // 2) Grab the init function
-    const { initPSGCDropdowns } = PhilAddress;
+    // References to the DOM elements.
+    const regionSelect = document.getElementById('region-select');
+    const provinceSelect = document.getElementById('province-select');
+    const citySelect = document.getElementById('city-select');
+    const barangaySelect = document.getElementById('barangay-select');
+    const finalAddressDiv = document.getElementById('final-address');
 
-    // 3) Call it, passing in your container elements and a final callback
-    initPSGCDropdowns({
-      regionContainer:   document.getElementById('region-dropdown'),
-      provinceContainer: document.getElementById('province-dropdown'),
-      cityContainer:     document.getElementById('city-dropdown'),
-      barangayContainer: document.getElementById('barangay-dropdown'),
-      onFinalSelect:     selected => {
-        // This will fire when the user picks a barangay
-        console.log('You selected:', selected);
-        alert(`You selected: ${selected.name} (${selected.id})`);
+    // Helper to populate a select element with options.
+    function populateSelect(selectElement, items, placeholder) {
+      selectElement.innerHTML = '';
+      const defaultOption = document.createElement('option');
+      defaultOption.value = '';
+      defaultOption.textContent = placeholder;
+      selectElement.appendChild(defaultOption);
+      items.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item.id;
+        option.textContent = item.name;
+        selectElement.appendChild(option);
+      });
+      // Disable the select if there are no items.
+      selectElement.disabled = items.length === 0;
+    }
+
+    // Event: when region changes, load provinces.
+    regionSelect.addEventListener('change', async () => {
+      populateSelect(provinceSelect, [], 'Select Province');
+      populateSelect(citySelect, [], 'Select City/Mun/SubMun');
+      populateSelect(barangaySelect, [], 'Select Barangay');
+      finalAddressDiv.textContent = 'Final Address: ';
+
+      const regionId = regionSelect.value;
+      if (regionId) {
+        const provincesData = await provinces(regionId);
+        // Map provinces to include only id and name.
+        const mappedProvinces = provincesData.map(p => ({ id: p.id, name: p.name }));
+        populateSelect(provinceSelect, mappedProvinces, 'Select Province');
       }
     });
+
+    // Event: when province changes, load cities.
+    provinceSelect.addEventListener('change', async () => {
+      populateSelect(citySelect, [], 'Select City/Mun/SubMun');
+      populateSelect(barangaySelect, [], 'Select Barangay');
+      finalAddressDiv.textContent = 'Final Address: ';
+
+      const provinceId = provinceSelect.value;
+      if (provinceId) {
+        const citiesData = await cities(provinceId);
+        const mappedCities = citiesData.map(c => ({ id: c.id, name: c.name }));
+        populateSelect(citySelect, mappedCities, 'Select City/Mun/SubMun');
+      }
+    });
+
+    // Event: when city changes, load barangays.
+    citySelect.addEventListener('change', async () => {
+      populateSelect(barangaySelect, [], 'Select Barangay');
+      finalAddressDiv.textContent = 'Final Address: ';
+
+      const cityId = citySelect.value;
+      if (cityId) {
+        const barangaysData = await barangays(cityId);
+        const mappedBarangays = barangaysData.map(b => ({ id: b.id, name: b.name }));
+        populateSelect(barangaySelect, mappedBarangays, 'Select Barangay');
+      }
+    });
+
+    // Event: when barangay changes, display the final address.
+    barangaySelect.addEventListener('change', () => {
+      const selectedAddress = {
+        region: regionSelect.options[regionSelect.selectedIndex].textContent,
+        province: provinceSelect.options[provinceSelect.selectedIndex].textContent,
+        city: citySelect.options[citySelect.selectedIndex].textContent,
+        barangay: barangaySelect.options[barangaySelect.selectedIndex].textContent
+      };
+      finalAddressDiv.textContent = 'Final Address: ' + constructAddress(selectedAddress);
+    });
+
+    // Load regions on page load.
+    (async () => {
+      const regionsData = await regions();
+      const mappedRegions = regionsData
+        .sort((a, b) => Number(a["10-digit PSGC"]) - Number(b["10-digit PSGC"]))
+        .map(r => ({ id: r["10-digit PSGC"], name: r["Name"] }));
+      populateSelect(regionSelect, mappedRegions, 'Select Region');
+    })();
   </script>
 </body>
 </html>

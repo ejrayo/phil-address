@@ -1,88 +1,152 @@
-# phil-address
 
-> Searchable cascading dropdowns for Philippine PSGC: Region → Province → City/Municipality/Sub‑Municipality → Barangay, with Metro Manila grouping built‑in.
+# Phil-Address
+
+**Phil-Address** is an npm module that provides functions to fetch Philippine address data—including regions, provinces, cities/municipalities/sub‑municipalities, and barangays—from a public API. It also implements in‑memory caching (with TTL) and offers a helper for constructing a full address string. This allows you complete freedom to create your own user interfaces (dropdowns, autocompletes, etc.) for address selection.
 
 
 ## Features
 
-- ✅ Lightweight UMD and ESM builds  
-- 🔍 Searchable inputs for each level  
-- 🌐 Supports full PSGC hierarchy (Region → Province → City/Mun/Sub‑Mun → Barangay)  
-- 🏙️ “Metro Manila” pseudo‑province under NCR, grouping all NCR cities/municipalities  
-- 🚀 Zero‑config: just include the bundle and call `initPSGCDropdowns()`  
-- ⚙️ Works with static JSON or a Cloudflare‑Workers API
+- **Fetch Regions:** Retrieve a list of regions.
+- **Fetch Provinces:** Retrieve provinces for a given region code.
+- **Fetch Cities:** Retrieve cities (or municipalities/sub‑municipalities) for a given province code.
+- **Fetch Barangays:** Retrieve barangays for a given city code.
+- **Caching:** Uses in‑memory caching with a TTL (default is 1 hour) to reduce redundant API calls.
+- **Address Construction:** Provides a utility to build a full address string from individual parts.
 
-
-
-## Acknowledgements
-
-This package’s underlying PSGC data is provided by the Philippine Statistics Authority (PSA).  
-Original dataset and publication details can be found at:
-
- - [https://psa.gov.ph/classification/psgc](https://psa.gov.ph/classification/psgc)
-
-Please refer to the PSA’s terms of use for any redistribution of the raw data.
 
 
 ## Installation
 
-Install my-project with npm
+Install the package via npm:
 
 ```bash
-  npm install phil-address
+    npm install phil-address
 ```
     
-## Usage/Examples
+## Usage
+
+Since this module exports ES module functions, you can import them into your project and build your own UI components.
+
+#### Example (ES Module)
+```javascript
+import { regions, provinces, cities, barangays, constructAddress } from 'phil-address';
+
+(async () => {
+  // Fetch regions and log the data
+  const regionData = await regions();
+  console.log('Regions:', regionData);
+
+  // For demonstration, select the first region (replace with your UI logic)
+  const selectedRegion = regionData[0];
+
+  // Fetch provinces for the selected region (using its "10-digit PSGC" as the code)
+  const provincesData = await provinces(selectedRegion["10-digit PSGC"]);
+  console.log('Provinces:', provincesData);
+
+  // Select the first province (replace with your UI logic)
+  const selectedProvince = provincesData[0];
+
+  // Fetch cities for the selected province
+  const citiesData = await cities(selectedProvince.id);
+  console.log('Cities:', citiesData);
+
+  // Select the first city
+  const selectedCity = citiesData[0];
+
+  // Fetch barangays for the selected city
+  const barangaysData = await barangays(selectedCity.id);
+  console.log('Barangays:', barangaysData);
+
+  // Select the first barangay
+  const selectedBarangay = barangaysData[0];
+
+  // Construct the full address
+  const fullAddress = constructAddress({
+    region: selectedRegion["Name"],
+    province: selectedProvince.name,
+    city: selectedCity.name,
+    barangay: selectedBarangay.name
+  });
+  console.log('Full Address:', fullAddress);
+})();
+
+```
+
+#### Example (CommonJS)
 
 ```javascript
-<div id="region"></div>
-<div id="province"></div>
-<div id="city"></div>
-<div id="barangay"></div>
+(async () => {
+  const { regions, provinces, cities, barangays, constructAddress } = await import('phil-address');
 
-<script type="module">
-import { initPSGCDropdowns } from 'phil-address';
+  // Use the functions similarly:
+  const regionData = await regions();
+  // ...continue as shown in the ES Module example.
+})();
 
-initPSGCDropdowns({
-  regionContainer:   document.getElementById('region'),
-  provinceContainer: document.getElementById('province'),
-  cityContainer:     document.getElementById('city'),
-  barangayContainer: document.getElementById('barangay'),
-  onFinalSelect:     selected => {
-    console.log('You picked:', selected);
-  }
-});
-</script>
+```
+## API Reference
+
+#### regions()
+
+- **Description:** Returns an array of regions as provided by the API.
+- **Usage:**
+```js
+    const regionsData = await regions();
+```
+
+#### provinces(regionCode)
+- **Description:** Returns an array of provinces for the specified region code.
+- **Usage:**
+```js
+    const provincesData = await provinces("regionCode"); // Replace with a valid region code.
+
 ```
 
 
+#### cities(provCode)
+- **Description:** Returns an array of cities (or municipalities/sub‑municipalities) for the specified province code.
+- **Usage:**
+```js
+    const citiesData = await cities("provCode");  // Replace with a valid province code.
+
+```
+
+#### barangays(cityCode)
+- **Description:** Returns an array of barangays for the specified city code.
+- **Usage:**
+```js
+   const barangaysData = await barangays("cityCode");  // Replace with a valid city code.
+
+```
 
 
-## API Reference
+#### constructAddress(address)
+- **Description:** Constructs a full address string from an object containing address parts.
+- **Parameters:** An object with the following properties:
+    - region
+    - province
+    - city
+    - barangay
+- **Usage:**
+```js
+   const fullAddress = constructAddress({
+        region: "Region Name",
+        province: "Province Name",
+        city: "City Name",
+        barangay: "Barangay Name"
+    });
+```
 
-### initPSGCDropdowns(options)
+## License
 
+[MIT](https://github.com/ejrayo/phil-address/blob/main/LICENSE)
 
-| Option | Type | Description |
-| :---         |     :---:      |          :--- |
-| regionContainer   | Element     | 	Container for the Region dropdown    |
-| provinceContainer    | Element       | Container for the Province dropdown      |
-| cityContainer   | Element     | Container for the City/Municipality/Sub‑Mun dropdown    |
-| barangayContainer    | Element       | Container for the Barangay dropdown      |
-| onFinalSelect   | Element     | Called with the final selection **{ id, name }** of the barangay    |
 
 
 ## Acknowledgements
 
-This package’s underlying PSGC data is provided by the Philippine Statistics Authority (PSA).  
+This package’s underlying PSGC data is provided by the Philippine Statistics Authority (PSA).
 Original dataset and publication details can be found at:
-
- - [https://psa.gov.ph/classification/psgc](https://psa.gov.ph/classification/psgc)
+ - [Philippine Statistics Authority (psa)](https://psa.gov.ph/classification/psgc)
 
 Please refer to the PSA’s terms of use for any redistribution of the raw data.
-
-
-## License
-
-[MIT](https://choosealicense.com/licenses/mit/)
-

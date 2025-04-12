@@ -2,25 +2,40 @@
   "name": "phil-address",
   "version": "1.0.0",
   "description": "Searchable cascading dropdowns for Philippine PSGC: Region → Province → City/Municipality/Sub‑Municipality → Barangay, with Metro Manila grouping built‑in.",
-  "main": "index.js",
+  "main": "dist/phil-address.umd.js",
+  "module": "dist/phil-address.esm.js",
   "type": "module",
   "keywords": [
     "philippine address",
-    "psgc",
+    "psgc-4q-2024",
     "dropdown",
     "searchable",
     "philippines",
-    "location"
+    "location",
+    "cascading",
+    "cascading dropdown",
+    "address selector",
+    "address picker",
+    "philippine location",
+    "philippine psgc",
+    "region selector",
+    "province selector",
+    "city selector",
+    "barangay selector",
+    "geolocation",
+    "location picker",
+    "address autocomplete",
+    "address ui"
   ],
   "author": "Ej Rayo contact@ejrayo.com",
   "license": "MIT",
-  "homepage": "https://github.com/yourusername/phil-address#readme",
+  "homepage": "https://github.com/ejrayo/phil-address/blob/main/README.md",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/phil-address.git"
+    "url": "https://github.com/ejrayo/phil-address.git"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/phil-address/issues"
+    "url": "https://github.com/ejrayo/phil-address/issues"
   },
   "scripts": {
     "build": "rollup -c",
@@ -33,6 +48,7 @@
     "@rollup/plugin-node-resolve": "^16.0.1",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
+    "node-fetch": "^2.7.0",
     "rollup": "^4.39.0"
   }
 }
