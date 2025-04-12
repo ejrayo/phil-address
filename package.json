@@ -1,5 +1,5 @@
 {
-  "name": "@jeijei11/phil-address",
+  "name": "phil-address",
   "version": "1.0.0",
   "description": "Searchable cascading dropdowns for Philippine PSGC: Region → Province → City/Municipality/Sub‑Municipality → Barangay, with Metro Manila grouping built‑in.",
   "main": "dist/phil-address.umd.js",
