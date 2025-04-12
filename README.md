@@ -147,6 +147,6 @@ import { regions, provinces, cities, barangays, constructAddress } from 'phil-ad
 
 This package’s underlying PSGC data is provided by the Philippine Statistics Authority (PSA).
 Original dataset and publication details can be found at:
- - [Philippine Statistics Authority (psa)](https://psa.gov.ph/classification/psgc)
+ - [Philippine Statistics Authority (PSA)](https://psa.gov.ph/classification/psgc)
 
 Please refer to the PSA’s terms of use for any redistribution of the raw data.
