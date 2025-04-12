@@ -17,10 +17,10 @@
           "includeFilesListInHomepage": true,
           "search": true,
           "homepageTitle": "Phil-Address",
-          "title": "Phil-Address",
+          "title": "Phil-Address by Ej Rayo",
           "exclude_inherited": false,
           "displayModuleHeader": true,
-          "footer": "<div style=\"text-align: center; padding: 10px 0;\"><a href=\"https://github.com/ejrayo/phil-address\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"color: #007bff; text-decoration: none;\"><img src=\"https://raw.githubusercontent.com/ejrayo/phil-address/github-mark.png\" alt=\"GitHub Logo\" style=\"vertical-align: middle; width: 24px; margin-right: 8px;\"/>V.1.0.0 - phil-address by Ej Rayo</a></div>",
+         "footer": "<div style=\"text-align: center; padding: 10px 0;\"><a href=\"https://github.com/ejrayo/phil-address\" target=\"_blank\" rel=\"noopener noreferrer\" style=\"color: #007bff; text-decoration: none;\">V.1.0.0 - phil-address by Ej Rayo</a></div>",
           "meta": [
                 {
                     "name": "Author",
