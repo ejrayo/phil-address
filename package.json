@@ -32,7 +32,7 @@
   "homepage": "https://github.com/ejrayo/phil-address/blob/main/README.md",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ejrayo/phil-address.git"
+    "url": "git+https://github.com/ejrayo/phil-address.git"
   },
   "bugs": {
     "url": "https://github.com/ejrayo/phil-address/issues"
