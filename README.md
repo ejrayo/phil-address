@@ -40,6 +40,11 @@ Install the package via npm:
     npm install phil-address
 ```
     
+## Documentation
+
+[Documentation](https://ejrayo.github.io/phil-address/)
+
+
 ## Usage
 
 Since this module exports ES module functions, you can import them into your project and build your own UI components.

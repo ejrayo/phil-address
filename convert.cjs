@@ -1,39 +1,50 @@
-// split-by-level.js
-const fs   = require('fs');
-const path = require('path');
+const fs = require('fs');
 
-// 1. Load & parse source data
-const dataPath = path.join(__dirname, 'data', 'psgc.json');
-const allData  = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
+// Define input and output file paths.
+const inputFile = './data/submun.json';
+const outputFile = 'submun_modified.json';
 
-// 2. Define the levels you expect
-const levels = ['Reg', 'Prov', 'Mun', 'City', 'SubMun', 'Bgy'];
+// Define the mapping from original keys to new keys.
+const keyMapping = {
+  "10-digit PSGC": "psgcCode",
+  "Name": "name",
+  "Correspondence Code": "correspondenceCode",
+  "Geographic Level": "geographicLevel"
+};
 
-// 3. Group records by Geographic Level
-const groups = allData.reduce((acc, item) => {
-  const lvl = item['Geographic Level'];
-  // only group known levels
-  if (levels.includes(lvl)) {
-    acc[lvl] = acc[lvl] || [];
-    acc[lvl].push(item);
+// Function to process and rename keys in a record.
+function processRecord(record) {
+  const newRecord = {};
+  for (const oldKey in keyMapping) {
+    if (record.hasOwnProperty(oldKey)) {
+      newRecord[keyMapping[oldKey]] = record[oldKey];
+    }
   }
-  return acc;
-}, {});
+  return newRecord;
+}
 
-// 4. Write each group to its own file
-levels.forEach(lvl => {
-  const arr = groups[lvl] || [];
-  const filename = lvl.toLowerCase() + '.json';
-  fs.writeFileSync(
-    path.join(__dirname, filename),
-    JSON.stringify(arr, null, 2),
-    'utf8'
-  );
-});
+// Read the JSON data from the input file.
+let data = fs.readFileSync(inputFile, 'utf-8');
+data = JSON.parse(data);
 
-// 5. Logging
-console.log(`Total records: ${allData.length}`);
-levels.forEach(lvl => {
-  const count = (groups[lvl] || []).length;
-  console.log(`${lvl.padEnd(6)}: ${count}`);
-});
+// Determine and log the original number of records.
+let originalCount;
+let modifiedData;
+if (Array.isArray(data)) {
+  originalCount = data.length;
+  console.log(`Original number of records: ${originalCount}`);
+  modifiedData = data.map(processRecord);
+} else if (typeof data === 'object' && data !== null) {
+  originalCount = 1;
+  console.log("Original data is a single record.");
+  modifiedData = processRecord(data);
+} else {
+  throw new Error("Unexpected JSON format.");
+}
+
+// Count the number of converted records.
+const convertedCount = Array.isArray(modifiedData) ? modifiedData.length : 1;
+
+// Write the modified JSON data to the output file.
+fs.writeFileSync(outputFile, JSON.stringify(modifiedData, null, 2), 'utf-8');
+console.log(`Converted ${convertedCount} records. Modified JSON data has been written to ${outputFile}.`);

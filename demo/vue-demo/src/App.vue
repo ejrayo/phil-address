@@ -66,10 +66,10 @@ export default {
   async mounted() {
     const data = await regions();
     this.regionsData = data
-      .sort((a, b) => Number(a["10-digit PSGC"]) - Number(b["10-digit PSGC"]))
+      .sort((a, b) => Number(a["psgcCode"]) - Number(b["psgcCode"]))
       .map(r => ({
-        id: r["10-digit PSGC"],
-        name: r["Name"]
+        id: r["psgcCode"],
+        name: r["name"]
       }));
   },
   methods: {

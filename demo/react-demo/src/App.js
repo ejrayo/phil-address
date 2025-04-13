@@ -20,10 +20,10 @@ function App() {
     async function loadAndMapRegions() {
       const data = await regions();
       const mapped = data
-        .sort((a, b) => Number(a["10-digit PSGC"]) - Number(b["10-digit PSGC"]))
+        .sort((a, b) => Number(a["psgcCode"]) - Number(b["psgcCode"]))
         .map(r => ({
-          id: r["10-digit PSGC"],
-          name: r["Name"]
+          id: r["psgcCode"],
+          name: r["name"]
         }));
       setRegionsData(mapped);
     }
