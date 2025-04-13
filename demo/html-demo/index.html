@@ -116,7 +116,7 @@
   <!-- Use a module script to import your functions -->
   <script type="module">
     // Import functions and helper from your module.
-    import { regions, provinces, cities, barangays, constructAddress } from '../src/index.js';
+    import { regions, provinces, cities, barangays, constructAddress } from '../../src/index.js';
 
     // References to the DOM elements.
     const regionSelect = document.getElementById('region-select');
@@ -200,8 +200,8 @@
     (async () => {
       const regionsData = await regions();
       const mappedRegions = regionsData
-        .sort((a, b) => Number(a["10-digit PSGC"]) - Number(b["10-digit PSGC"]))
-        .map(r => ({ id: r["10-digit PSGC"], name: r["Name"] }));
+        .sort((a, b) => Number(a["psgcCode"]) - Number(b["psgcCode"]))
+        .map(r => ({ id: r["psgcCode"], name: r["name"] }));
       populateSelect(regionSelect, mappedRegions, 'Select Region');
     })();
   </script>

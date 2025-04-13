@@ -1,7 +1,7 @@
 {
   "name": "phil-address",
-  "version": "1.0.0",
-  "description": "Phil-Address is an npm module that provides functions to fetch Philippine address data—including regions, provinces, cities/municipalities/sub‑municipalities, and barangays—from a public API. It also implements in‑memory caching (with TTL) and offers a helper for constructing a full address string. This allows you complete freedom to create your own user interfaces (dropdowns, autocompletes, etc.) for address selection.",
+  "version": "1.0.1",
+  "description": "Phil-Address: An npm module to fetch Philippine address data with in-memory caching and a full address construction helper for custom UI integrations.",
   "main": "dist/phil-address.umd.js",
   "module": "dist/phil-address.esm.js",
   "type": "module",

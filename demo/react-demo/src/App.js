@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import logo from './logo.svg';
 import gitLogo from './github-mark.png';
 import './App.css';
-import { regions, provinces, cities, barangays, constructAddress } from '@jeijei11/phil-address';
+import { regions, provinces, cities, barangays, constructAddress } from 'phil-address';
 
 function App() {
   const [regionsData, setRegionsData] = useState([]);
@@ -148,15 +148,25 @@ function App() {
         </div>
 
         <footer>
-          <a
-            href="https://github.com/ejrayo/phil-address"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <img src={gitLogo} alt="GitHub Logo" className="github-logo" />
-            V.1.0.0 - phil-address by Ej Rayo
-          </a>
+          <div className="footer-links">
+            <a
+              href="https://github.com/ejrayo/phil-address"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="github-link"
+            >
+              <img src={gitLogo} alt="GitHub Logo" className="github-logo" />
+              V.1.0.1 - phil-address by Ej Rayo
+            </a>
+            <button
+              className="docs-button"
+              onClick={() => window.open('https://ejrayo.github.io/phil-address', '_blank')}
+            >
+              Documentation
+            </button>
+          </div>
         </footer>
+
     </div>
   );
 }

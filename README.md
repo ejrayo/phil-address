@@ -1,14 +1,14 @@
 
 # Phil-Address
-![NPM Version](https://img.shields.io/npm/v/@jeijei11%2Fphil-address)
-![License](https://img.shields.io/npm/l/@jeijei11%2Fphil-address)
+![NPM Version](https://img.shields.io/npm/v/phil-address)
+![License](https://img.shields.io/npm/l/phil-address)
 
 **Phil-Address** is an npm module that provides functions to fetch Philippine address data—including regions, provinces, cities/municipalities/sub‑municipalities, and barangays—from a public API. It also implements in‑memory caching (with TTL) and offers a helper for constructing a full address string. This allows you complete freedom to create your own user interfaces (dropdowns, autocompletes, etc.) for address selection.
 
-> [!NOTE]
-> **Metro Manila** is included as a pseudo province for all cities and barangays for Region NCR.
-> New Region **Negros Island Region (NIR)** included.
-> API data uses the **PSGC-4Q-2024-Publication-Datafile**. _Link below_.
+#### Note:
+- [x] **Metro Manila** is included as a pseudo province for all cities and barangays for Region NCR.
+- [x] New Region **Negros Island Region (NIR)** included.
+- [x] API data uses the **PSGC-4Q-2024-Publication-Datafile**. _Link below_.
 
 
 ## Features
@@ -61,8 +61,8 @@ import { regions, provinces, cities, barangays, constructAddress } from 'phil-ad
   // For demonstration, select the first region (replace with your UI logic)
   const selectedRegion = regionData[0];
 
-  // Fetch provinces for the selected region (using its "10-digit PSGC" as the code)
-  const provincesData = await provinces(selectedRegion["10-digit PSGC"]);
+  // Fetch provinces for the selected region (using its "psgcCode" as the code)
+  const provincesData = await provinces(selectedRegion["psgcCode"]);
   console.log('Provinces:', provincesData);
 
   // Select the first province (replace with your UI logic)
@@ -84,7 +84,7 @@ import { regions, provinces, cities, barangays, constructAddress } from 'phil-ad
 
   // Construct the full address
   const fullAddress = constructAddress({
-    region: selectedRegion["Name"],
+    region: selectedRegion["name"],
     province: selectedProvince.name,
     city: selectedCity.name,
     barangay: selectedBarangay.name

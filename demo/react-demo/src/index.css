@@ -62,17 +62,33 @@ footer {
   align-items: center;
 }
 
-footer a {
-  color: #007bff;
-  text-decoration: none;
-  font-size: 16px;
+.footer-links {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 20px;
+}
+
+.github-link {
   display: flex;
   align-items: center;
+  text-decoration: none;
+  color: #007bff;
+  font-size: 16px;
 }
 
 .github-logo {
   width: 24px;
-  height: auto;
   margin-right: 8px;
 }
 
+.docs-button {
+  padding: 8px 12px;
+  font-size: 16px;
+  color: #fff;
+  background-color: #007bff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out;
+}

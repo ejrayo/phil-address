@@ -31,20 +31,29 @@
     </div>
 
     <footer>
-      <a
-        href="https://github.com/ejrayo/phil-address"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        <img :src="gitLogo" alt="GitHub Logo" class="github-logo" />
-        V.1.0.0 - phil-address by Ej Rayo
-      </a>
-    </footer>
+          <div className="footer-links">
+            <a
+              href="https://github.com/ejrayo/phil-address"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="github-link"
+            >
+              <img :src="gitLogo" alt="GitHub Logo" class="github-logo" />
+              V.1.0.1 - phil-address by Ej Rayo
+            </a>
+            <button
+              class="docs-button"
+              @click="openDocumentation"
+            >
+              Documentation
+            </button>
+          </div>
+        </footer>
   </div>
 </template>
 
 <script>
-import { regions, provinces, cities, barangays, constructAddress } from '@jeijei11/phil-address';
+import { regions, provinces, cities, barangays, constructAddress } from 'phil-address';
 import gitLogo from './assets/github-mark.png';
 
 export default {
@@ -73,6 +82,9 @@ export default {
       }));
   },
   methods: {
+    openDocumentation() {
+      window.open('https://ejrayo.github.io/phil-address', '_blank');
+    },
     async onRegionChange() {
       this.provincesData = [];
       this.citiesData = [];
@@ -205,17 +217,34 @@ footer {
   align-items: center;
 }
 
-footer a {
-  color: #007bff;
-  text-decoration: none;
-  font-size: 16px;
+.footer-links {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 20px;
+}
+
+.github-link {
   display: flex;
   align-items: center;
+  text-decoration: none;
+  color: #007bff;
+  font-size: 16px;
 }
 
 .github-logo {
   width: 24px;
-  height: auto;
   margin-right: 8px;
+}
+
+.docs-button {
+  padding: 8px 12px;
+  font-size: 16px;
+  color: #fff;
+  background-color: #007bff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out;
 }
 </style>
