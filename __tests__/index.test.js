@@ -10,20 +10,24 @@ import {
   constructAddress
 } from '../src/index';
 
-// Mock fetch
-global.fetch = jest.fn();
+// Mock fetch is already set up in test/setup.js
 
 describe('phil-address', () => {
   beforeEach(() => {
-    fetch.mockClear();
     clearCache();
+    // Reset configuration to defaults
+    configure({
+      cacheTTL: 3600000,
+      timeout: 10000,
+      retries: 3
+    });
   });
 
   describe('regions', () => {
     it('should fetch and cache regions', async () => {
       const mockRegions = [
-        { code: '01', name: 'Region I' },
-        { code: '02', name: 'Region II' }
+        { psgcCode: '0100000000', name: 'Region I (Ilocos Region)' },
+        { psgcCode: '0200000000', name: 'Region II (Cagayan Valley)' }
       ];
 
       fetch.mockResolvedValueOnce({
@@ -43,32 +47,41 @@ describe('phil-address', () => {
     });
 
     it('should handle fetch errors gracefully', async () => {
+      // Configure to not retry for this test
+      configure({ retries: 0 });
+      
       fetch.mockRejectedValueOnce(new Error('Network error'));
 
       const result = await regions();
       expect(result).toEqual([]);
+      expect(fetch).toHaveBeenCalledTimes(1);
     });
 
     it('should deduplicate concurrent requests', async () => {
-      const mockRegions = [{ code: '01', name: 'Region I' }];
+      const mockRegions = [{ psgcCode: '0100000000', name: 'Region I (Ilocos Region)' }];
 
-      fetch.mockImplementation(() => 
-        new Promise(resolve => 
-          setTimeout(() => resolve({
-            ok: true,
-            json: async () => mockRegions
-          }), 100)
-        )
-      );
+      let resolvePromise;
+      const promise = new Promise(resolve => {
+        resolvePromise = resolve;
+      });
+
+      fetch.mockReturnValueOnce({
+        ok: true,
+        json: async () => {
+          await promise;
+          return mockRegions;
+        }
+      });
 
       // Make multiple concurrent requests
-      const promises = Promise.all([
-        regions(),
-        regions(),
-        regions()
-      ]);
+      const promise1 = regions();
+      const promise2 = regions();
+      const promise3 = regions();
 
-      const results = await promises;
+      // Resolve the fetch
+      resolvePromise();
+
+      const results = await Promise.all([promise1, promise2, promise3]);
 
       // Should only fetch once
       expect(fetch).toHaveBeenCalledTimes(1);
@@ -85,7 +98,7 @@ describe('phil-address', () => {
 
     it('should fetch provinces for valid region', async () => {
       const mockProvinces = [
-        { code: '0128', name: 'Metro Manila' }
+        { psgcCode: '1300000000', name: 'National Capital Region (NCR)' }
       ];
 
       fetch.mockResolvedValueOnce({
@@ -93,10 +106,10 @@ describe('phil-address', () => {
         json: async () => mockProvinces
       });
 
-      const result = await provinces('01');
+      const result = await provinces('0100000000');
       expect(result).toEqual(mockProvinces);
       expect(fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/provinces/01'),
+        expect.stringContaining('/provinces/0100000000'),
         expect.any(Object)
       );
     });
@@ -105,8 +118,8 @@ describe('phil-address', () => {
   describe('search', () => {
     it('should search across regions', async () => {
       const mockRegions = [
-        { code: '01', name: 'Region I (Ilocos Region)' },
-        { code: '02', name: 'Region II (Cagayan Valley)' }
+        { psgcCode: '0100000000', name: 'Region I (Ilocos Region)' },
+        { psgcCode: '0200000000', name: 'Region II (Cagayan Valley)' }
       ];
 
       fetch.mockResolvedValueOnce({
@@ -126,7 +139,7 @@ describe('phil-address', () => {
 
     it('should respect search limits', async () => {
       const mockRegions = Array(20).fill(null).map((_, i) => ({
-        code: `${i}`.padStart(2, '0'),
+        psgcCode: `${i}`.padStart(2, '0'),
         name: `Region ${i}`
       }));
 
@@ -152,9 +165,11 @@ describe('phil-address', () => {
 
   describe('configuration', () => {
     it('should apply custom cache TTL', async () => {
+      jest.useFakeTimers();
+      
       configure({ cacheTTL: 100 }); // 100ms
 
-      const mockRegions = [{ code: '01', name: 'Region I' }];
+      const mockRegions = [{ psgcCode: '0100000000', name: 'Region I (Ilocos Region)' }];
       
       fetch.mockResolvedValue({
         ok: true,
@@ -165,28 +180,47 @@ describe('phil-address', () => {
       await regions();
       expect(fetch).toHaveBeenCalledTimes(1);
 
-      // Wait for cache to expire
-      await new Promise(resolve => setTimeout(resolve, 150));
-
-      // Should fetch again
+      // Advance time less than TTL
+      jest.advanceTimersByTime(50);
       await regions();
-      expect(fetch).toHaveBeenCalledTimes(2);
+      expect(fetch).toHaveBeenCalledTimes(1); // Still cached
+
+      // Advance time past TTL
+      jest.advanceTimersByTime(60);
+      await regions();
+      expect(fetch).toHaveBeenCalledTimes(2); // Cache expired
+      
+      jest.useRealTimers();
     });
 
     it('should handle request timeout', async () => {
-      configure({ timeout: 100 });
+      configure({ timeout: 100, retries: 0 });
 
-      fetch.mockImplementation(() => 
-        new Promise(resolve => 
-          setTimeout(() => resolve({
-            ok: true,
-            json: async () => []
-          }), 200)
-        )
-      );
+      // Create an AbortController mock
+      const abortMock = jest.fn();
+      global.AbortController = jest.fn(() => ({
+        signal: 'mock-signal',
+        abort: abortMock
+      }));
+
+      // Mock setTimeout to immediately call abort
+      const originalSetTimeout = global.setTimeout;
+      global.setTimeout = jest.fn((callback) => {
+        callback();
+        return 1;
+      });
+
+      fetch.mockRejectedValueOnce(new Error('AbortError'));
+      Object.defineProperty(fetch.mock.results[0].value, 'name', {
+        value: 'AbortError'
+      });
 
       const result = await regions();
       expect(result).toEqual([]);
+      
+      // Restore
+      global.setTimeout = originalSetTimeout;
+      delete global.AbortController;
     });
   });
 
@@ -215,7 +249,7 @@ describe('phil-address', () => {
 
     it('should get cache statistics', async () => {
       // Load some data
-      const mockRegions = [{ code: '01', name: 'Region I' }];
+      const mockRegions = [{ psgcCode: '0100000000', name: 'Region I (Ilocos Region)' }];
       fetch.mockResolvedValueOnce({
         ok: true,
         json: async () => mockRegions
@@ -237,22 +271,33 @@ describe('phil-address', () => {
 
   describe('error handling and retries', () => {
     it('should retry on failure', async () => {
-      configure({ retries: 2 });
+      jest.useFakeTimers();
+      configure({ retries: 2, timeout: 10000 });
 
+      const mockRegions = [{ psgcCode: '0100000000', name: 'Region I (Ilocos Region)' }];
+
+      // First call fails, second succeeds
       fetch
         .mockRejectedValueOnce(new Error('Network error'))
         .mockResolvedValueOnce({
           ok: true,
-          json: async () => [{ code: '01', name: 'Region I' }]
+          json: async () => mockRegions
         });
 
-      const result = await regions();
-      expect(result).toHaveLength(1);
+      const resultPromise = regions();
+      
+      // Fast-forward through retry delay
+      jest.runAllTimers();
+      
+      const result = await resultPromise;
+      expect(result).toEqual(mockRegions);
       expect(fetch).toHaveBeenCalledTimes(2);
+      
+      jest.useRealTimers();
     });
 
     it('should use stale cache on network failure', async () => {
-      const mockRegions = [{ code: '01', name: 'Region I' }];
+      const mockRegions = [{ psgcCode: '0100000000', name: 'Region I (Ilocos Region)' }];
       
       // First successful call
       fetch.mockResolvedValueOnce({
@@ -260,10 +305,11 @@ describe('phil-address', () => {
         json: async () => mockRegions
       });
 
-      await regions();
+      const firstResult = await regions();
+      expect(firstResult).toEqual(mockRegions);
       
-      // Configure short TTL
-      configure({ cacheTTL: 1 });
+      // Configure short TTL and no retries
+      configure({ cacheTTL: 1, retries: 0 });
       
       // Wait for cache to expire
       await new Promise(resolve => setTimeout(resolve, 10));

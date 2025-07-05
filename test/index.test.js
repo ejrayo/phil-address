@@ -10,24 +10,19 @@ describe("phil-address module", () => {
   });
 
   test("provinces() should return an array when given a valid region code", async () => {
-    // Use a valid region code from your API. For example purposes, I'm using '1400000000'
-    const regionCode = "1400000000"; 
+    const regionCode = "0100000000"; 
     const data = await provinces(regionCode);
     expect(Array.isArray(data)).toBe(true);
   });
 
   test("cities() should return an array when given a valid province code", async () => {
-    // Use a known province code.
-    // You might need to replace 'PROV_CODE_SAMPLE' with a real value from your API.
-    const provCode = "PROV_CODE_SAMPLE";
+    const provCode = "0102800000";
     const data = await cities(provCode);
     expect(Array.isArray(data)).toBe(true);
   });
 
   test("barangays() should return an array when given a valid city code", async () => {
-    // Use a known city code.
-    // Replace 'CITY_CODE_SAMPLE' with a real value from your API.
-    const cityCode = "CITY_CODE_SAMPLE";
+    const cityCode = "0102812000";
     const data = await barangays(cityCode);
     expect(Array.isArray(data)).toBe(true);
   });

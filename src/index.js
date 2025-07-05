@@ -124,6 +124,110 @@ async function fetchWithTimeout(url, retries = config.retries) {
 }
 
 /**
+ * Performance monitoring configuration
+ */
+let performanceConfig = {
+  enabled: false,
+  logSlowRequests: true,
+  slowRequestThreshold: 1000 // ms
+};
+
+/**
+ * Performance metrics storage
+ */
+const performanceMetrics = {
+  apiCalls: 0,
+  cacheHits: 0,
+  cacheMisses: 0,
+  totalResponseTime: 0,
+  slowRequests: []
+};
+
+/**
+ * Enable/disable performance monitoring
+ * @param {boolean} enabled - Whether to enable monitoring
+ * @param {Object} options - Monitoring options
+ */
+export function configurePerformanceMonitoring(enabled, options = {}) {
+  performanceConfig = {
+    ...performanceConfig,
+    enabled,
+    ...options
+  };
+}
+
+/**
+ * Wrap fetch with performance monitoring
+ * @private
+ */
+async function monitoredFetch(url, options) {
+  if (!performanceConfig.enabled) {
+    return fetchWithTimeout(url, options);
+  }
+  
+  const startTime = Date.now();
+  performanceMetrics.apiCalls++;
+  
+  try {
+    const response = await fetchWithTimeout(url, options);
+    const duration = Date.now() - startTime;
+    performanceMetrics.totalResponseTime += duration;
+    
+    if (performanceConfig.logSlowRequests && duration > performanceConfig.slowRequestThreshold) {
+      performanceMetrics.slowRequests.push({
+        url,
+        duration,
+        timestamp: new Date().toISOString()
+      });
+      console.warn(`Slow request detected: ${url} took ${duration}ms`);
+    }
+    
+    return response;
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    performanceMetrics.totalResponseTime += duration;
+    throw error;
+  }
+}
+
+/**
+ * Get performance metrics
+ * @returns {Object} Performance metrics
+ */
+export function getPerformanceMetrics() {
+  const avgResponseTime = performanceMetrics.apiCalls > 0
+    ? Math.round(performanceMetrics.totalResponseTime / performanceMetrics.apiCalls)
+    : 0;
+  
+  const cacheHitRate = (performanceMetrics.cacheHits + performanceMetrics.cacheMisses) > 0
+    ? Math.round((performanceMetrics.cacheHits / (performanceMetrics.cacheHits + performanceMetrics.cacheMisses)) * 100)
+    : 0;
+  
+  return {
+    ...performanceMetrics,
+    avgResponseTime,
+    cacheHitRate: `${cacheHitRate}%`,
+    summary: {
+      totalCalls: performanceMetrics.apiCalls,
+      avgResponseTime: `${avgResponseTime}ms`,
+      cacheEfficiency: `${cacheHitRate}%`,
+      slowRequestCount: performanceMetrics.slowRequests.length
+    }
+  };
+}
+
+/**
+ * Reset performance metrics
+ */
+export function resetPerformanceMetrics() {
+  performanceMetrics.apiCalls = 0;
+  performanceMetrics.cacheHits = 0;
+  performanceMetrics.cacheMisses = 0;
+  performanceMetrics.totalResponseTime = 0;
+  performanceMetrics.slowRequests = [];
+}
+
+/**
  * Generic function to load data with caching and deduplication
  * @param {string} endpoint - API endpoint
  * @param {Object} cache - Cache object to use
@@ -131,12 +235,15 @@ async function fetchWithTimeout(url, retries = config.retries) {
  * @returns {Promise<Array>}
  */
 async function loadData(endpoint, cache, cacheKey) {
-  // Check cache validity
+
   const cacheEntry = cache[cacheKey];
   if (cacheEntry && (Date.now() - cacheEntry.timestamp < config.cacheTTL)) {
+    if (performanceConfig.enabled) performanceMetrics.cacheHits++;
     return cacheEntry.data;
   }
   
+  if (performanceConfig.enabled) performanceMetrics.cacheMisses++;
+
   // Check if there's already a pending request
   const pendingKey = `${endpoint}-${cacheKey}`;
   if (pendingRequests.has(pendingKey)) {
@@ -340,7 +447,7 @@ export async function search(query, options = {}) {
         if (results.length >= limit) break;
         
         if (includeProvinces) {
-          const provincesData = await loadProvinces(region.code);
+          const provincesData = await loadProvinces(region.psgcCode);
           const provinceMatches = provincesData
             .filter(p => p.name.toLowerCase().includes(normalizedQuery))
             .map(p => ({ ...p, type: 'province', regionName: region.name }));
@@ -348,12 +455,12 @@ export async function search(query, options = {}) {
         }
         
         if (includeCities && results.length < limit) {
-          const provincesData = await loadProvinces(region.code);
+          const provincesData = await loadProvinces(region.psgcCode);
           
           for (const province of provincesData) {
             if (results.length >= limit) break;
             
-            const citiesData = await loadCities(province.code);
+            const citiesData = await loadCities(province.psgcCode);
             const cityMatches = citiesData
               .filter(c => c.name.toLowerCase().includes(normalizedQuery))
               .map(c => ({
@@ -446,6 +553,187 @@ export async function barangays(cityCode) {
   return loadBarangays(cityCode);
 }
 
+/**
+ * Get region by code
+ * @param {string} regionCode - Region code
+ * @returns {Promise<Object|null>} Region object or null
+ */
+export async function getRegionByCode(regionCode) {
+  const regionsData = await regions();
+  return regionsData.find(r => r.psgcCode === regionCode) || null;
+}
+
+/**
+ * Get province by code
+ * @param {string} provinceCode - Province code
+ * @returns {Promise<Object|null>} Province object with region info or null
+ */
+export async function getProvinceByCode(provinceCode) {
+  const regionsData = await regions();
+  
+  for (const region of regionsData) {
+    const provincesData = await provinces(region.psgcCode);
+    const province = provincesData.find(p => p.psgcCode === provinceCode);
+    if (province) {
+      return { ...province, region };
+    }
+  }
+  
+  return null;
+}
+
+/**
+ * Get full address hierarchy by barangay code
+ * @param {string} barangayCode - Barangay code
+ * @returns {Promise<Object|null>} Complete address hierarchy
+ */
+export async function getAddressHierarchy(barangayCode) {
+  if (!barangayCode || barangayCode.length < 9) return null;
+  
+  const regionCode = barangayCode.substring(0, 2);
+  const provinceCode = barangayCode.substring(0, 4);
+  const cityCode = barangayCode.substring(0, 6);
+  
+  try {
+    const [regionsData, provincesData, citiesData, barangaysData] = await Promise.all([
+      regions(),
+      provinces(regionCode),
+      cities(provinceCode),
+      barangays(cityCode)
+    ]);
+    
+    const region = regionsData.find(r => r.psgcCode === regionCode);
+    const province = provincesData.find(p => p.psgcCode === provinceCode);
+    const city = citiesData.find(c => c.psgcCode === cityCode);
+    const barangay = barangaysData.find(b => b.psgcCode === barangayCode);
+    
+    if (!region || !province || !city || !barangay) return null;
+    
+    return {
+      region,
+      province,
+      city,
+      barangay,
+      fullAddress: constructAddress({
+        barangay: barangay.name,
+        city: city.name,
+        province: province.name,
+        region: region.name
+      })
+    };
+  } catch (error) {
+    console.error('Error getting address hierarchy:', error);
+    return null;
+  }
+}
+
+/**
+ * Validate Philippine ZIP code
+ * @param {string} zipCode - ZIP code to validate
+ * @returns {boolean} Whether the ZIP code is valid
+ */
+export function isValidZipCode(zipCode) {
+  // Philippine ZIP codes are 4 digits
+  return /^\d{4}$/.test(zipCode);
+}
+
+/**
+ * Get all provinces grouped by region
+ * @returns {Promise<Object>} Provinces grouped by region
+ */
+export async function getProvincesGroupedByRegion() {
+  const regionsData = await regions();
+  const grouped = {};
+  
+  await Promise.all(
+    regionsData.map(async (region) => {
+      const provincesData = await provinces(region.psgcCode);
+      grouped[region.name] = {
+        code: region.psgcCode,
+        provinces: provincesData
+      };
+    })
+  );
+  
+  return grouped;
+}
+
+/**
+ * Fuzzy search with scoring
+ * @param {string} query - Search query
+ * @param {Object} options - Search options
+ * @returns {Promise<Array>} Search results with scores
+ */
+export async function fuzzySearch(query, options = {}) {
+  const results = await search(query, options);
+  
+  // Add relevance scores based on match position
+  return results.map(result => {
+    const name = result.name.toLowerCase();
+    const searchQuery = query.toLowerCase();
+    let score = 0;
+    
+    if (name === searchQuery) {
+      score = 100; // Exact match
+    } else if (name.startsWith(searchQuery)) {
+      score = 90; // Starts with query
+    } else if (name.includes(searchQuery)) {
+      score = 70; // Contains query
+    } else {
+      // Calculate similarity score
+      score = calculateSimilarity(name, searchQuery);
+    }
+    
+    return { ...result, score };
+  }).sort((a, b) => b.score - a.score);
+}
+
+/**
+ * Calculate string similarity (Levenshtein distance based)
+ * @private
+ */
+function calculateSimilarity(str1, str2) {
+  const longer = str1.length > str2.length ? str1 : str2;
+  const shorter = str1.length > str2.length ? str2 : str1;
+  
+  if (longer.length === 0) return 100;
+  
+  const editDistance = levenshteinDistance(longer, shorter);
+  return Math.round(((longer.length - editDistance) / longer.length) * 100);
+}
+
+/**
+ * Levenshtein distance algorithm
+ * @private
+ */
+function levenshteinDistance(str1, str2) {
+  const matrix = [];
+  
+  for (let i = 0; i <= str2.length; i++) {
+    matrix[i] = [i];
+  }
+  
+  for (let j = 0; j <= str1.length; j++) {
+    matrix[0][j] = j;
+  }
+  
+  for (let i = 1; i <= str2.length; i++) {
+    for (let j = 1; j <= str1.length; j++) {
+      if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j] + 1
+        );
+      }
+    }
+  }
+  
+  return matrix[str2.length][str1.length];
+}
+
 // Default export for convenience
 export default {
   regions,
@@ -456,5 +744,14 @@ export default {
   search,
   configure,
   clearCache,
-  getCacheStats
+  getCacheStats,
+  getRegionByCode,
+  getProvinceByCode,
+  getAddressHierarchy,
+  isValidZipCode,
+  getProvincesGroupedByRegion,
+  fuzzySearch,
+  configurePerformanceMonitoring,
+  getPerformanceMetrics,
+  resetPerformanceMetrics
 };
