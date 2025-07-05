@@ -1,57 +1,73 @@
 {
   "name": "phil-address",
-  "version": "1.0.1",
-  "description": "Phil-Address: An npm module to fetch Philippine address data with in-memory caching and a full address construction helper for custom UI integrations.",
-  "main": "dist/phil-address.umd.js",
-  "module": "dist/phil-address.esm.js",
-  "type": "module",
-  "keywords": [
-    "philippine address",
-    "psgc-4q-2024",
-    "dropdown",
-    "philippines",
-    "location",
-    "cascading",
-    "cascading dropdown",
-    "address selector",
-    "address picker",
-    "philippine location",
-    "philippine psgc",
-    "region",
-    "province",
-    "city",
-    "barangay",
-    "location picker",
-    "address autocomplete"
+  "version": "2.0.0",
+  "description": "Lightweight Philippine address data fetcher with smart caching, search, and request deduplication",
+  "main": "dist/index.js",
+  "module": "dist/index.esm.js",
+  "types": "types/index.d.ts",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "types",
+    "examples",
+    "README.md",
+    "LICENSE"
   ],
-  "author": "Ej Rayo contact@ejrayo.com",
-  "license": "MIT",
-  "homepage": "https://github.com/ejrayo/phil-address/blob/main/README.md",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/ejrayo/phil-address.git"
-  },
-  "bugs": {
-    "url": "https://github.com/ejrayo/phil-address/issues"
-  },
   "scripts": {
     "build": "rollup -c",
     "test": "jest",
-    "docs": "jsdoc --configure jsdoc.json --verbose"
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint src examples",
+    "prepublishOnly": "npm run test && npm run build",
+    "dev": "rollup -c -w"
   },
+  "keywords": [
+    "philippines",
+    "philippine-address",
+    "address",
+    "regions",
+    "provinces",
+    "cities",
+    "barangays",
+    "dropdown",
+    "autocomplete",
+    "ph-address",
+    "address-picker",
+    "location",
+    "geography",
+    "react-dropdown",
+    "address-search"
+  ],
+  "author": "@jeijei11",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jeijei11/phil-address.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jeijei11/phil-address/issues"
+  },
+  "homepage": "https://github.com/jeijei11/phil-address#readme",
   "devDependencies": {
-    "@babel/core": "^7.26.10",
-    "@babel/preset-env": "^7.26.9",
-    "@rollup/plugin-json": "^6.1.0",
-    "@rollup/plugin-node-resolve": "^16.0.1",
-    "@rollup/plugin-replace": "^6.0.2",
+    "@babel/core": "^7.28.0",
+    "@babel/preset-env": "^7.28.0",
+    "@rollup/plugin-babel": "^6.0.4",
+    "@rollup/plugin-node-resolve": "^15.3.1",
+    "@rollup/plugin-terser": "^0.4.4",
+    "eslint": "^8.50.0",
     "jest": "^29.7.0",
-    "jest-environment-jsdom": "^29.7.0",
-    "jsdoc": "^4.0.4",
-    "node-fetch": "^2.7.0",
-    "rollup": "^4.39.0"
+    "rollup": "^3.29.5"
   },
-  "dependencies": {
-    "clean-jsdoc-theme": "^4.3.0"
+  "jest": {
+    "testEnvironment": "node",
+    "coverageDirectory": "coverage",
+    "collectCoverageFrom": [
+      "src/**/*.js",
+      "!src/**/*.test.js"
+    ]
+  },
+  "engines": {
+    "node": ">=12.0.0"
   }
 }

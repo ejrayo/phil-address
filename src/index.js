@@ -20,255 +20,441 @@ const CACHE_TTL = 3600000;
 
 // ---------------------------------------------------------------------
 // Caching Variables with TTL Support
-// These variables hold the cached API responses along with a timestamp.
-// If the cached data is too old (based on CACHE_TTL), a new fetch is performed.
 // ---------------------------------------------------------------------
 
 /**
  * Cache for regions data.
- * Stores an object with a data array and a timestamp.
- *
  * @type {{data: Array|null, timestamp: number}}
  */
 let regionsCache = { data: null, timestamp: 0 };
 
 /**
- * Cache for provinces data, keyed by "provinces-" concatenated with the region code.
- *
+ * Cache for provinces data, keyed by region code.
  * @type {Object.<string, {data: Array, timestamp: number}>}
  */
 const provincesCache = {};
 
 /**
- * Cache for cities data, keyed by "cities-" concatenated with the province code.
- *
+ * Cache for cities data, keyed by province code.
  * @type {Object.<string, {data: Array, timestamp: number}>}
  */
 const citiesCache = {};
 
 /**
- * Cache for barangays data, keyed by "barangays-" concatenated with the city code.
- *
+ * Cache for barangays data, keyed by city code.
  * @type {Object.<string, {data: Array, timestamp: number}>}
  */
 const barangaysCache = {};
 
 // ---------------------------------------------------------------------
-// API Functions with Error Handling and TTL Caching
-// These functions fetch data from the API and cache the responses.
-// If a valid cached version is available, it is returned immediately.
+// Request Deduplication
+// Prevents multiple simultaneous requests for the same resource
 // ---------------------------------------------------------------------
 
 /**
- * Fetches region data from the API, using in-memory caching with TTL.
- *
- * @async
- * @returns {Promise<Array>} Resolves to an array of region objects.
+ * Pending requests map to prevent duplicate API calls
+ * @type {Map<string, Promise>}
  */
-async function loadRegions() {
-  // If the cache is populated and still valid, return the cached regions.
-  if (regionsCache.data && (Date.now() - regionsCache.timestamp < CACHE_TTL)) {
-    return regionsCache.data;
-  }
+const pendingRequests = new Map();
+
+// ---------------------------------------------------------------------
+// Configuration Options
+// ---------------------------------------------------------------------
+
+/**
+ * Global configuration options
+ * @type {{cacheTTL: number, timeout: number, retries: number}}
+ */
+let config = {
+  cacheTTL: CACHE_TTL,
+  timeout: 10000, // 10 seconds
+  retries: 3
+};
+
+/**
+ * Configure the package settings
+ * @param {Object} options - Configuration options
+ * @param {number} [options.cacheTTL] - Cache TTL in milliseconds
+ * @param {number} [options.timeout] - Request timeout in milliseconds
+ * @param {number} [options.retries] - Number of retry attempts
+ */
+export function configure(options) {
+  config = { ...config, ...options };
+}
+
+// ---------------------------------------------------------------------
+// Utility Functions
+// ---------------------------------------------------------------------
+
+/**
+ * Performs a fetch request with timeout and retry logic
+ * @param {string} url - The URL to fetch
+ * @param {number} [retries] - Number of retry attempts remaining
+ * @returns {Promise<Response>}
+ */
+async function fetchWithTimeout(url, retries = config.retries) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), config.timeout);
+  
   try {
-    // Fetch new data from the API endpoint for regions.
-    const res = await fetch(`${API}/regions`);
-    // Check if the response status is OK; if not, throw an error.
-    if (!res.ok) {
-      throw new Error("Network error while fetching regions");
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeout);
+    
+    if (!response.ok && retries > 0) {
+      // Wait a bit before retrying (exponential backoff)
+      await new Promise(resolve => setTimeout(resolve, (config.retries - retries + 1) * 1000));
+      return fetchWithTimeout(url, retries - 1);
     }
-    // Parse the JSON response.
-    const data = await res.json();
-    // Update the cache with the new data and current timestamp.
-    regionsCache = { data, timestamp: Date.now() };
-    return data;
+    
+    return response;
   } catch (error) {
-    // Log any errors and return an empty array as a fallback.
-    console.error("Error in loadRegions:", error);
-    return [];
+    clearTimeout(timeout);
+    
+    if (error.name === 'AbortError') {
+      throw new Error('Request timeout');
+    }
+    
+    if (retries > 0) {
+      await new Promise(resolve => setTimeout(resolve, (config.retries - retries + 1) * 1000));
+      return fetchWithTimeout(url, retries - 1);
+    }
+    
+    throw error;
   }
 }
 
 /**
- * Fetches province data for a given region code from the API, using in-memory caching with TTL.
- *
+ * Generic function to load data with caching and deduplication
+ * @param {string} endpoint - API endpoint
+ * @param {Object} cache - Cache object to use
+ * @param {string} cacheKey - Key for caching
+ * @returns {Promise<Array>}
+ */
+async function loadData(endpoint, cache, cacheKey) {
+  // Check cache validity
+  const cacheEntry = cache[cacheKey];
+  if (cacheEntry && (Date.now() - cacheEntry.timestamp < config.cacheTTL)) {
+    return cacheEntry.data;
+  }
+  
+  // Check if there's already a pending request
+  const pendingKey = `${endpoint}-${cacheKey}`;
+  if (pendingRequests.has(pendingKey)) {
+    return pendingRequests.get(pendingKey);
+  }
+  
+  // Create new request
+  const requestPromise = (async () => {
+    try {
+      const res = await fetchWithTimeout(`${API}${endpoint}`);
+      if (!res.ok) {
+        throw new Error(`Network error while fetching ${endpoint}`);
+      }
+      const data = await res.json();
+      
+      // Update cache
+      cache[cacheKey] = { data, timestamp: Date.now() };
+      
+      return data;
+    } catch (error) {
+      console.error(`Error loading ${endpoint}:`, error);
+      // Return cached data if available, even if expired
+      if (cacheEntry?.data) {
+        return cacheEntry.data;
+      }
+      return [];
+    } finally {
+      // Clean up pending request
+      pendingRequests.delete(pendingKey);
+    }
+  })();
+  
+  // Store pending request
+  pendingRequests.set(pendingKey, requestPromise);
+  
+  return requestPromise;
+}
+
+// ---------------------------------------------------------------------
+// API Functions
+// ---------------------------------------------------------------------
+
+/**
+ * Fetches region data from the API
  * @async
- * @param {string} regionCode - The region code for which to fetch provinces.
- * @returns {Promise<Array>} Resolves to an array of province objects.
+ * @returns {Promise<Array>} Array of region objects
+ */
+async function loadRegions() {
+  // Special handling for regions since it uses a different cache structure
+  if (regionsCache.data && (Date.now() - regionsCache.timestamp < config.cacheTTL)) {
+    return regionsCache.data;
+  }
+  
+  const pendingKey = 'regions';
+  if (pendingRequests.has(pendingKey)) {
+    return pendingRequests.get(pendingKey);
+  }
+  
+  const requestPromise = (async () => {
+    try {
+      const res = await fetchWithTimeout(`${API}/regions`);
+      if (!res.ok) {
+        throw new Error("Network error while fetching regions");
+      }
+      const data = await res.json();
+      regionsCache = { data, timestamp: Date.now() };
+      return data;
+    } catch (error) {
+      console.error("Error in loadRegions:", error);
+      if (regionsCache.data) {
+        return regionsCache.data;
+      }
+      return [];
+    } finally {
+      pendingRequests.delete(pendingKey);
+    }
+  })();
+  
+  pendingRequests.set(pendingKey, requestPromise);
+  return requestPromise;
+}
+
+/**
+ * Fetches province data for a given region code
+ * @async
+ * @param {string} regionCode - The region code
+ * @returns {Promise<Array>} Array of province objects
  */
 async function loadProvinces(regionCode) {
-  // Validate the provided regionCode.
   if (typeof regionCode !== 'string' || !regionCode) {
     console.error("Invalid region code");
     return [];
   }
-
-  // Create a unique cache key for the region.
+  
   const cacheKey = `provinces-${regionCode}`;
-  const cacheEntry = provincesCache[cacheKey];
-  // Check if cached data is still valid.
-  if (cacheEntry && (Date.now() - cacheEntry.timestamp < CACHE_TTL)) {
-    return cacheEntry.data;
-  }
-  try {
-    // Fetch provinces data for the given region code.
-    const res = await fetch(`${API}/provinces/${regionCode}`);
-    if (!res.ok) {
-      throw new Error("Network error while fetching provinces");
-    }
-    const data = await res.json();
-    // Update the cache for provinces.
-    provincesCache[cacheKey] = { data, timestamp: Date.now() };
-    return data;
-  } catch (error) {
-    console.error("Error in loadProvinces:", error);
-    return [];
-  }
+  return loadData(`/provinces/${regionCode}`, provincesCache, cacheKey);
 }
 
 /**
- * Fetches cities data for a given province code from the API, using in-memory caching with TTL.
- *
+ * Fetches cities data for a given province code
  * @async
- * @param {string} provCode - The province code for which to fetch cities.
- * @returns {Promise<Array>} Resolves to an array of city objects.
+ * @param {string} provCode - The province code
+ * @returns {Promise<Array>} Array of city objects
  */
 async function loadCities(provCode) {
-  // Validate the provided province code.
   if (typeof provCode !== 'string' || !provCode) {
     console.error("Invalid province code");
     return [];
   }
-
-  // Create a unique cache key for the province.
+  
   const cacheKey = `cities-${provCode}`;
-  const cacheEntry = citiesCache[cacheKey];
-  // Check if the cached entry exists and hasn't expired.
-  if (cacheEntry && (Date.now() - cacheEntry.timestamp < CACHE_TTL)) {
-    return cacheEntry.data;
-  }
-  try {
-    // Fetch cities data for the given province code.
-    const res = await fetch(`${API}/cities/${provCode}`);
-    if (!res.ok) {
-      throw new Error("Network error while fetching cities");
-    }
-    const data = await res.json();
-    // Update the cache for cities.
-    citiesCache[cacheKey] = { data, timestamp: Date.now() };
-    return data;
-  } catch (error) {
-    console.error("Error in loadCities:", error);
-    return [];
-  }
+  return loadData(`/cities/${provCode}`, citiesCache, cacheKey);
 }
 
 /**
- * Fetches barangay data for a given city code from the API, using in-memory caching with TTL.
- *
+ * Fetches barangay data for a given city code
  * @async
- * @param {string} cityCode - The city code for which to fetch barangays.
- * @returns {Promise<Array>} Resolves to an array of barangay objects.
+ * @param {string} cityCode - The city code
+ * @returns {Promise<Array>} Array of barangay objects
  */
 async function loadBarangays(cityCode) {
-  // Validate the provided city code.
   if (typeof cityCode !== 'string' || !cityCode) {
     console.error("Invalid city code");
     return [];
   }
-
-  // Construct a unique cache key for the city.
+  
   const cacheKey = `barangays-${cityCode}`;
-  const cacheEntry = barangaysCache[cacheKey];
-  // Return cached data if it is valid.
-  if (cacheEntry && (Date.now() - cacheEntry.timestamp < CACHE_TTL)) {
-    return cacheEntry.data;
+  return loadData(`/barangays/${cityCode}`, barangaysCache, cacheKey);
+}
+
+// ---------------------------------------------------------------------
+// Helper Functions
+// ---------------------------------------------------------------------
+
+/**
+ * Constructs a full address string from address parts
+ * @param {Object} address - Address components
+ * @param {string} [address.region] - Region name
+ * @param {string} [address.province] - Province name
+ * @param {string} [address.city] - City name
+ * @param {string} [address.barangay] - Barangay name
+ * @param {string} [address.street] - Street address
+ * @param {string} [address.zipCode] - ZIP code
+ * @returns {string} Full address string
+ */
+export function constructAddress(address) {
+  const parts = [
+    address.street,
+    address.barangay,
+    address.city,
+    address.province,
+    address.region,
+    address.zipCode
+  ].filter(Boolean);
+  
+  return parts.join(', ');
+}
+
+/**
+ * Searches for a location by name across all levels
+ * @param {string} query - Search query
+ * @param {Object} [options] - Search options
+ * @param {boolean} [options.includeRegions=true] - Include regions in search
+ * @param {boolean} [options.includeProvinces=true] - Include provinces in search
+ * @param {boolean} [options.includeCities=true] - Include cities in search
+ * @param {boolean} [options.includeBarangays=false] - Include barangays in search
+ * @param {number} [options.limit=10] - Maximum results to return
+ * @returns {Promise<Array>} Search results
+ */
+export async function search(query, options = {}) {
+  const {
+    includeRegions = true,
+    includeProvinces = true,
+    includeCities = true,
+    includeBarangays = false,
+    limit = 10
+  } = options;
+  
+  if (!query || typeof query !== 'string') {
+    return [];
   }
+  
+  const normalizedQuery = query.toLowerCase().trim();
+  const results = [];
+  
   try {
-    // Fetch barangays data for the given city code.
-    const res = await fetch(`${API}/barangays/${cityCode}`);
-    if (!res.ok) {
-      throw new Error("Network error while fetching barangays");
+    // Search regions
+    if (includeRegions) {
+      const regionsData = await loadRegions();
+      const regionMatches = regionsData
+        .filter(r => r.name.toLowerCase().includes(normalizedQuery))
+        .map(r => ({ ...r, type: 'region' }));
+      results.push(...regionMatches);
     }
-    const data = await res.json();
-    // Update the cache for barangays.
-    barangaysCache[cacheKey] = { data, timestamp: Date.now() };
-    return data;
+    
+    // For provinces and cities, we need to search through all regions/provinces
+    if (includeProvinces || includeCities) {
+      const regionsData = await loadRegions();
+      
+      for (const region of regionsData) {
+        if (results.length >= limit) break;
+        
+        if (includeProvinces) {
+          const provincesData = await loadProvinces(region.code);
+          const provinceMatches = provincesData
+            .filter(p => p.name.toLowerCase().includes(normalizedQuery))
+            .map(p => ({ ...p, type: 'province', regionName: region.name }));
+          results.push(...provinceMatches);
+        }
+        
+        if (includeCities && results.length < limit) {
+          const provincesData = await loadProvinces(region.code);
+          
+          for (const province of provincesData) {
+            if (results.length >= limit) break;
+            
+            const citiesData = await loadCities(province.code);
+            const cityMatches = citiesData
+              .filter(c => c.name.toLowerCase().includes(normalizedQuery))
+              .map(c => ({
+                ...c,
+                type: 'city',
+                provinceName: province.name,
+                regionName: region.name
+              }));
+            results.push(...cityMatches);
+          }
+        }
+      }
+    }
+    
+    // Limit results
+    return results.slice(0, limit);
   } catch (error) {
-    console.error("Error in loadBarangays:", error);
+    console.error('Error in search:', error);
     return [];
   }
 }
 
-// ---------------------------------------------------------------------
-// Utility Helper Functions
-// These are additional helper functions to assist with common tasks.
-// ---------------------------------------------------------------------
+/**
+ * Clears all cached data
+ */
+export function clearCache() {
+  regionsCache = { data: null, timestamp: 0 };
+  Object.keys(provincesCache).forEach(key => delete provincesCache[key]);
+  Object.keys(citiesCache).forEach(key => delete citiesCache[key]);
+  Object.keys(barangaysCache).forEach(key => delete barangaysCache[key]);
+  pendingRequests.clear();
+}
 
 /**
- * Constructs a full address string from an object with the address parts.
- * The object should contain properties corresponding to the address segments,
- * such as region, province, city, and barangay.
- *
- * @param {Object} address - An object containing address parts.
- * @param {string} [address.region] - The region name.
- * @param {string} [address.province] - The province name.
- * @param {string} [address.city] - The city name.
- * @param {string} [address.barangay] - The barangay name.
- * @returns {string} The full address as a comma-separated string.
+ * Gets cache statistics
+ * @returns {Object} Cache statistics
  */
-function constructAddress(address) {
-  // Create an array of address components, filter out any falsy values (like undefined or empty strings),
-  // and then join them with a comma and space to form a full address string.
-  return [address.barangay, address.city, address.province, address.region]
-    .filter(Boolean)
-    .join(', ');
+export function getCacheStats() {
+  const countCache = (cache) => Object.keys(cache).length;
+  
+  return {
+    regions: regionsCache.data ? 1 : 0,
+    provinces: countCache(provincesCache),
+    cities: countCache(citiesCache),
+    barangays: countCache(barangaysCache),
+    pendingRequests: pendingRequests.size,
+    totalCached: (regionsCache.data ? 1 : 0) + 
+                 countCache(provincesCache) + 
+                 countCache(citiesCache) + 
+                 countCache(barangaysCache)
+  };
 }
 
 // ---------------------------------------------------------------------
 // Public API Exports
-// These functions are exposed for external use. Each function wraps one of the
-// internal functions with caching and error handling.
 // ---------------------------------------------------------------------
 
 /**
- * Returns a promise that resolves to the regions data.
- *
- * @returns {Promise<Array>} Regions data array.
+ * Fetches all regions
+ * @returns {Promise<Array>} Array of regions
  */
 export async function regions() {
   return loadRegions();
 }
 
 /**
- * Returns a promise that resolves to the provinces data for a given region code.
- *
- * @param {string} regionCode - The region code.
- * @returns {Promise<Array>} Provinces data array.
+ * Fetches provinces for a given region
+ * @param {string} regionCode - Region code
+ * @returns {Promise<Array>} Array of provinces
  */
 export async function provinces(regionCode) {
   return loadProvinces(regionCode);
 }
 
 /**
- * Returns a promise that resolves to the cities data for a given province code.
- *
- * @param {string} provCode - The province code.
- * @returns {Promise<Array>} Cities data array.
+ * Fetches cities for a given province
+ * @param {string} provCode - Province code
+ * @returns {Promise<Array>} Array of cities
  */
 export async function cities(provCode) {
   return loadCities(provCode);
 }
 
 /**
- * Returns a promise that resolves to the barangays data for a given city code.
- *
- * @param {string} cityCode - The city code.
- * @returns {Promise<Array>} Barangays data array.
+ * Fetches barangays for a given city
+ * @param {string} cityCode - City code
+ * @returns {Promise<Array>} Array of barangays
  */
 export async function barangays(cityCode) {
   return loadBarangays(cityCode);
 }
 
-// Also export the helper function for constructing a full address.
-export { constructAddress };
+// Default export for convenience
+export default {
+  regions,
+  provinces,
+  cities,
+  barangays,
+  constructAddress,
+  search,
+  configure,
+  clearCache,
+  getCacheStats
+};

@@ -1,27 +1,46 @@
-import resolve from '@rollup/plugin-node-resolve';
-import json from '@rollup/plugin-json';
-import replace from '@rollup/plugin-replace';
+const babel = require('@rollup/plugin-babel').default;
+const resolve = require('@rollup/plugin-node-resolve').default;
+const terser = require('@rollup/plugin-terser');
 
-export default {
+const config = {
   input: 'src/index.js',
   output: [
     {
-      file: 'dist/phil-address.umd.js',
-      format: 'umd',
-      name: 'PhilAddress'
+      file: 'dist/index.js',
+      format: 'cjs',
+      exports: 'named',
+      sourcemap: true
     },
     {
-      file: 'dist/phil-address.esm.js',
-      format: 'es'
+      file: 'dist/index.esm.js',
+      format: 'esm',
+      sourcemap: true
+    },
+    {
+      file: 'dist/index.min.js',
+      format: 'umd',
+      name: 'PhilAddress',
+      exports: 'named',
+      sourcemap: true,
+      plugins: [terser()]
     }
   ],
   plugins: [
-    replace({
-      // The feature flag is defined as false in production
-      __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: JSON.stringify(false),
-      preventAssignment: true
-    }),
-    json(),
-    resolve()
-  ]
+    resolve(),
+    babel({
+      babelHelpers: 'bundled',
+      exclude: 'node_modules/**',
+      presets: [
+        ['@babel/preset-env', {
+          targets: {
+            node: '12',
+            browsers: ['last 2 versions', 'ie >= 11']
+          }
+        }]
+      ]
+    })
+  ],
+  external: [] // No external dependencies
 };
+
+module.exports = config;

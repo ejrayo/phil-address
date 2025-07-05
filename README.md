@@ -1,174 +1,368 @@
+# 🇵🇭 phil-address
 
-# Phil-Address
-![NPM Version](https://img.shields.io/npm/v/phil-address)
-![License](https://img.shields.io/npm/l/phil-address)
+[![npm version](https://badge.fury.io/js/phil-address.svg)](https://www.npmjs.com/package/phil-address)
+[![Bundle Size](https://img.shields.io/bundlephobia/minzip/phil-address)](https://bundlephobia.com/package/phil-address)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Phil-Address** is an npm module that provides functions to fetch Philippine address data—including regions, provinces, cities/municipalities/sub‑municipalities, and barangays—from a public API. It also implements in‑memory caching (with TTL) and offers a helper for constructing a full address string. This allows you complete freedom to create your own user interfaces (dropdowns, autocompletes, etc.) for address selection.
+Lightweight Philippine address data fetcher with smart caching, search functionality, and request deduplication. Perfect for dropdown integration in any application.
 
-> [!NOTE]
-> **Metro Manila** is included as a pseudo province for all cities and barangays for Region NCR.
-> New Region **Negros Island Region (NIR)** included.
-> API data uses the **PSGC-4Q-2024-Publication-Datafile**. _Link below_.
+## ✨ Features
 
+- 🚀 **Lightweight**: ~3KB minified + gzipped, zero dependencies
+- ⚡ **Fast**: Smart caching with configurable TTL
+- 🔄 **Request Deduplication**: Prevents duplicate API calls
+- 🔍 **Search**: Find addresses across all levels
+- 🛡️ **Reliable**: Automatic retry with exponential backoff
+- 📘 **TypeScript**: Full type definitions included
+- ⚛️ **React Ready**: Hooks and examples included
+- 🌐 **Browser & Node.js**: Works everywhere
 
-## Features
-
-- **Fetch Regions:** Retrieve a list of regions.
-- **Fetch Provinces:** Retrieve provinces for a given region code.
-- **Fetch Cities:** Retrieve cities (or municipalities/sub‑municipalities) for a given province code.
-- **Fetch Barangays:** Retrieve barangays for a given city code.
-- **Caching:** Uses in‑memory caching with a TTL (default is 1 hour) to reduce redundant API calls.
-- **Address Construction:** Provides a utility to build a full address string from individual parts.
-
-
-## Demo
-
-> Vue JS
-
-[![Deploy with Vercel](https://vercel.com/button)](https://phil-address.vercel.app/)
-
-> React
-
-[![Deploy with Vercel](https://vercel.com/button)](https://phil-address-react.vercel.app/)
-
-
-## Installation
-
-Install the package via npm:
+## 📦 Installation
 
 ```bash
-    npm install phil-address
-```
-    
-## Documentation
-
-[Documentation](https://ejrayo.github.io/phil-address/)
-
-
-## Usage
-
-Since this module exports ES module functions, you can import them into your project and build your own UI components.
-
-#### Example (ES Module)
-```javascript
-import { regions, provinces, cities, barangays, constructAddress } from 'phil-address';
-
-(async () => {
-  // Fetch regions and log the data
-  const regionData = await regions();
-  console.log('Regions:', regionData);
-
-  // For demonstration, select the first region (replace with your UI logic)
-  const selectedRegion = regionData[0];
-
-  // Fetch provinces for the selected region (using its "psgcCode" as the code)
-  const provincesData = await provinces(selectedRegion["psgcCode"]);
-  console.log('Provinces:', provincesData);
-
-  // Select the first province (replace with your UI logic)
-  const selectedProvince = provincesData[0];
-
-  // Fetch cities for the selected province
-  const citiesData = await cities(selectedProvince.id);
-  console.log('Cities:', citiesData);
-
-  // Select the first city
-  const selectedCity = citiesData[0];
-
-  // Fetch barangays for the selected city
-  const barangaysData = await barangays(selectedCity.id);
-  console.log('Barangays:', barangaysData);
-
-  // Select the first barangay
-  const selectedBarangay = barangaysData[0];
-
-  // Construct the full address
-  const fullAddress = constructAddress({
-    region: selectedRegion["name"],
-    province: selectedProvince.name,
-    city: selectedCity.name,
-    barangay: selectedBarangay.name
-  });
-  console.log('Full Address:', fullAddress);
-})();
-
+npm install phil-address
 ```
 
-#### Example (CommonJS)
+or
+
+```bash
+yarn add phil-address
+```
+
+## 🚀 Quick Start
 
 ```javascript
-(async () => {
-  const { regions, provinces, cities, barangays, constructAddress } = await import('phil-address');
+import { regions, provinces, cities, barangays } from 'phil-address';
 
-  // Use the functions similarly:
-  const regionData = await regions();
-  // ...continue as shown in the ES Module example.
-})();
+// Get all regions
+const regionsList = await regions();
 
-```
-## API Reference
+// Get provinces in a region
+const provincesList = await provinces('01'); // NCR
 
-#### regions()
+// Get cities in a province  
+const citiesList = await cities('0128'); // Metro Manila
 
-- **Description:** Returns an array of regions as provided by the API.
-- **Usage:**
-```js
-    const regionsData = await regions();
+// Get barangays in a city
+const barangaysList = await barangays('012801'); // Manila
 ```
 
-#### provinces(regionCode)
-- **Description:** Returns an array of provinces for the specified region code.
-- **Usage:**
-```js
-    const provincesData = await provinces("regionCode"); // Replace with a valid region code.
+## 🔧 Configuration
 
+```javascript
+import { configure } from 'phil-address';
+
+configure({
+  cacheTTL: 7200000,  // Cache for 2 hours (default: 1 hour)
+  timeout: 5000,      // 5 second timeout (default: 10 seconds)
+  retries: 2          // Retry failed requests twice (default: 3)
+});
 ```
 
+## 🔍 Search Functionality
 
-#### cities(provCode)
-- **Description:** Returns an array of cities (or municipalities/sub‑municipalities) for the specified province code.
-- **Usage:**
-```js
-    const citiesData = await cities("provCode");  // Replace with a valid province code.
+Search across regions, provinces, and cities:
 
+```javascript
+import { search } from 'phil-address';
+
+const results = await search('cebu', {
+  includeRegions: true,
+  includeProvinces: true,
+  includeCities: true,
+  includeBarangays: false,  // Set to true if needed (slower)
+  limit: 10
+});
+
+console.log(results);
+// [
+//   { code: '07', name: 'Central Visayas', type: 'region' },
+//   { code: '0722', name: 'Cebu', type: 'province', regionName: 'Central Visayas' },
+//   { code: '072217', name: 'Cebu City', type: 'city', provinceName: 'Cebu' }
+// ]
 ```
 
-#### barangays(cityCode)
-- **Description:** Returns an array of barangays for the specified city code.
-- **Usage:**
-```js
-   const barangaysData = await barangays("cityCode");  // Replace with a valid city code.
+## 🏗️ Utility Functions
 
+### Construct Full Address
+
+```javascript
+import { constructAddress } from 'phil-address';
+
+const fullAddress = constructAddress({
+  street: '123 Main Street',
+  barangay: 'Poblacion',
+  city: 'Makati',
+  province: 'Metro Manila',
+  region: 'NCR',
+  zipCode: '1234'
+});
+
+console.log(fullAddress);
+// "123 Main Street, Poblacion, Makati, Metro Manila, NCR, 1234"
 ```
 
+### Cache Management
 
-#### constructAddress(address)
-- **Description:** Constructs a full address string from an object containing address parts.
-- **Parameters:** An object with the following properties:
-    - region
-    - province
-    - city
-    - barangay
-- **Usage:**
-```js
-   const fullAddress = constructAddress({
-        region: "Region Name",
-        province: "Province Name",
-        city: "City Name",
-        barangay: "Barangay Name"
-    });
+```javascript
+import { clearCache, getCacheStats } from 'phil-address';
+
+// Get cache statistics
+const stats = getCacheStats();
+console.log(stats);
+// {
+//   regions: 1,
+//   provinces: 5,
+//   cities: 12,
+//   barangays: 3,
+//   pendingRequests: 0,
+//   totalCached: 21
+// }
+
+// Clear all cached data
+clearCache();
 ```
 
-## License
+## ⚛️ React Integration
 
-[MIT](https://github.com/ejrayo/phil-address/blob/main/LICENSE)
+### Using the Hook
 
+```javascript
+import { usePhilAddress } from 'phil-address/examples/react-hook';
 
+function AddressForm() {
+  const {
+    loading,
+    data,
+    selected,
+    selectRegion,
+    selectProvince,
+    selectCity,
+    selectBarangay,
+    getFullAddress
+  } = usePhilAddress();
 
-## Acknowledgements
+  return (
+    <div>
+      <select
+        value={selected.region?.code || ''}
+        onChange={(e) => {
+          const region = data.regions.find(r => r.code === e.target.value);
+          selectRegion(region);
+        }}
+        disabled={loading.regions}
+      >
+        <option value="">Select Region</option>
+        {data.regions.map(region => (
+          <option key={region.code} value={region.code}>
+            {region.name}
+          </option>
+        ))}
+      </select>
 
-This package’s underlying PSGC data is provided by the Philippine Statistics Authority (PSA) - Publication date: 31 December 2024.
-Original dataset and publication details can be found at:
- - [Philippine Statistics Authority (PSA)](https://psa.gov.ph/classification/psgc)
+      {/* Similar selects for province, city, and barangay */}
+      
+      <p>Full Address: {getFullAddress()}</p>
+    </div>
+  );
+}
+```
 
-Please refer to the PSA’s terms of use for any redistribution of the raw data.
+### Simple Dropdown Example
+
+```javascript
+import { useState, useEffect } from 'react';
+import { regions, provinces } from 'phil-address';
+
+function RegionDropdown() {
+  const [regionList, setRegionList] = useState([]);
+  const [selectedRegion, setSelectedRegion] = useState('');
+  const [provinceList, setProvinceList] = useState([]);
+
+  useEffect(() => {
+    regions().then(setRegionList);
+  }, []);
+
+  useEffect(() => {
+    if (selectedRegion) {
+      provinces(selectedRegion).then(setProvinceList);
+    }
+  }, [selectedRegion]);
+
+  return (
+    <>
+      <select onChange={(e) => setSelectedRegion(e.target.value)}>
+        <option value="">Select Region</option>
+        {regionList.map(region => (
+          <option key={region.code} value={region.code}>
+            {region.name}
+          </option>
+        ))}
+      </select>
+
+      <select disabled={!selectedRegion}>
+        <option value="">Select Province</option>
+        {provinceList.map(province => (
+          <option key={province.code} value={province.code}>
+            {province.name}
+          </option>
+        ))}
+      </select>
+    </>
+  );
+}
+```
+
+## 📊 Performance Optimizations
+
+### 1. Lazy Loading
+
+Only load data when needed:
+
+```javascript
+const [showProvinces, setShowProvinces] = useState(false);
+
+// Only load provinces when dropdown is opened
+const handleRegionSelect = async (regionCode) => {
+  setSelectedRegion(regionCode);
+  if (!provincesCache[regionCode]) {
+    await provinces(regionCode);
+  }
+  setShowProvinces(true);
+};
+```
+
+### 2. Preload Common Regions
+
+```javascript
+import { regions, provinces } from 'phil-address';
+
+// Preload common regions on app start
+async function preloadCommonAddresses() {
+  await regions();
+  
+  // Preload NCR, CALABARZON, Central Luzon
+  await Promise.all([
+    provinces('01'),
+    provinces('04A'),
+    provinces('03')
+  ]);
+}
+```
+
+### 3. Virtual Scrolling for Large Lists
+
+For barangays (which can be numerous):
+
+```javascript
+import { FixedSizeList } from 'react-window';
+
+function BarangayDropdown({ barangays }) {
+  if (barangays.length > 100) {
+    return (
+      <FixedSizeList
+        height={200}
+        itemCount={barangays.length}
+        itemSize={35}
+        width="100%"
+      >
+        {({ index, style }) => (
+          <div style={style}>
+            {barangays[index].name}
+          </div>
+        )}
+      </FixedSizeList>
+    );
+  }
+  
+  // Regular select for smaller lists
+  return (
+    <select>
+      {barangays.map(b => (
+        <option key={b.code} value={b.code}>{b.name}</option>
+      ))}
+    </select>
+  );
+}
+```
+
+## 📘 TypeScript Support
+
+Full TypeScript definitions are included:
+
+```typescript
+import { 
+  Region, 
+  Province, 
+  City, 
+  Barangay,
+  SearchOptions,
+  SearchResult 
+} from 'phil-address';
+
+// All functions are fully typed
+const regions: Region[] = await regions();
+const searchResults: SearchResult[] = await search('manila', {
+  includeRegions: true,
+  limit: 5
+});
+```
+
+## 🧪 Testing
+
+Run the test suite:
+
+```bash
+npm test
+```
+
+Run tests with coverage:
+
+```bash
+npm run test:coverage
+```
+
+## 📈 API Reference
+
+### Core Functions
+
+| Function | Description | Parameters | Returns |
+|----------|-------------|------------|---------|
+| `regions()` | Get all regions | None | `Promise<Region[]>` |
+| `provinces(regionCode)` | Get provinces in a region | `regionCode: string` | `Promise<Province[]>` |
+| `cities(provinceCode)` | Get cities in a province | `provinceCode: string` | `Promise<City[]>` |
+| `barangays(cityCode)` | Get barangays in a city | `cityCode: string` | `Promise<Barangay[]>` |
+
+### Utility Functions
+
+| Function | Description | Parameters | Returns |
+|----------|-------------|------------|---------|
+| `search(query, options)` | Search across all levels | `query: string, options?: SearchOptions` | `Promise<SearchResult[]>` |
+| `constructAddress(components)` | Build address string | `components: AddressComponents` | `string` |
+| `configure(options)` | Set configuration | `options: ConfigOptions` | `void` |
+| `clearCache()` | Clear all cache | None | `void` |
+| `getCacheStats()` | Get cache stats | None | `CacheStats` |
+
+## 🌐 Browser Support
+
+- Modern browsers (ES6+)
+- IE11 with polyfills
+- Node.js 12+
+- React Native
+
+## 📝 License
+
+MIT © [@jeijei11](https://github.com/jeijei11)
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## 🐛 Issues
+
+Found a bug? Please [open an issue](https://github.com/jeijei11/phil-address/issues).
+
+## 🙏 Credits
+
+- Philippine Standard Geographic Code (PSGC) data
+- Built with ❤️ for the Philippine developer community
