@@ -156,7 +156,7 @@ function App() {
               className="github-link"
             >
               <img src={gitLogo} alt="GitHub Logo" className="github-logo" />
-              V.2.0.0 - phil-address by Ej Rayo
+              V.2.0.1 - phil-address by Ej Rayo
             </a>
             <button
               className="docs-button"

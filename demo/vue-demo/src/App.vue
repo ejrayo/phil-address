@@ -39,7 +39,7 @@
               class="github-link"
             >
               <img :src="gitLogo" alt="GitHub Logo" class="github-logo" />
-              V.1.0.1 - phil-address by Ej Rayo
+              V.2.0.1 - phil-address by Ej Rayo
             </a>
             <button
               class="docs-button"
@@ -101,7 +101,7 @@ export default {
           name: p.name
         }));
       }
-    },
+    },  
     async onProvinceChange() {
       this.citiesData = [];
       this.barangaysData = [];

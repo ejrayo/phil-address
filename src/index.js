@@ -8,7 +8,7 @@
  *
  * @constant {string}
  */
-const API = 'https://phil-address-api.rayoedmund.workers.dev';
+const API = 'https://phil-address-api.portal-api.workers.dev';
 
 /**
  * Cache Time-To-Live in milliseconds.
@@ -460,7 +460,7 @@ export async function search(query, options = {}) {
           for (const province of provincesData) {
             if (results.length >= limit) break;
             
-            const citiesData = await loadCities(province.psgcCode);
+            const citiesData = await loadCities(province.id);
             const cityMatches = citiesData
               .filter(c => c.name.toLowerCase().includes(normalizedQuery))
               .map(c => ({
@@ -603,9 +603,9 @@ export async function getAddressHierarchy(barangayCode) {
     ]);
     
     const region = regionsData.find(r => r.psgcCode === regionCode);
-    const province = provincesData.find(p => p.psgcCode === provinceCode);
-    const city = citiesData.find(c => c.psgcCode === cityCode);
-    const barangay = barangaysData.find(b => b.psgcCode === barangayCode);
+    const province = provincesData.find(p => p.id === provinceCode);
+    const city = citiesData.find(c => c.id === cityCode);
+    const barangay = barangaysData.find(b => b.id === barangayCode);
     
     if (!region || !province || !city || !barangay) return null;
     

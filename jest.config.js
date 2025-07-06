@@ -26,4 +26,12 @@ module.exports = {
   moduleFileExtensions: ['js', 'json'],
   verbose: true,
   testTimeout: 10000,
+  // Transform ES modules
+  transform: {
+    '^.+\\.js$': 'babel-jest'
+  },
+  // Handle ES module imports
+  moduleNameMapper: {
+    '^(\\.{1,2}/.*)\\.js$': '$1'
+  }
 };
